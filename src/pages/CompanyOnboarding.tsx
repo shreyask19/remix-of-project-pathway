@@ -17,15 +17,21 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "@/contexts/UserContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { useCompanyProfile } from "@/hooks/useCompanyProfile";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import HeuristicLogo from "@/components/HeuristicLogo";
 
 const CompanyOnboarding = () => {
   const navigate = useNavigate();
   const { updateUser, setIsOnboarded } = useUser();
+  const { user, completeOnboarding } = useAuth();
+  const { saveProfile } = useCompanyProfile();
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 4;
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSaving, setIsSaving] = useState(false);
 
   const [formData, setFormData] = useState({
     companyName: "",
@@ -143,7 +149,7 @@ const CompanyOnboarding = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (!validateStep(currentStep)) {
       toast.error("Please fill in all required fields");
       return;
@@ -152,10 +158,53 @@ const CompanyOnboarding = () => {
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
     } else {
-      updateUser({ ...formData, role: "company" });
-      setIsOnboarded(true);
-      toast.success(`Welcome, ${formData.firstName}! Start posting challenges.`);
-      navigate("/company");
+      if (!user) {
+        toast.error("Please log in to continue");
+        return;
+      }
+      
+      setIsSaving(true);
+      try {
+        // Update the profiles table with basic info
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .update({
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            phone: formData.phone,
+          })
+          .eq("id", user.id);
+
+        if (profileError) throw profileError;
+
+        // Save company-specific data to company_profiles table
+        await saveProfile.mutateAsync({
+          companyName: formData.companyName,
+          industry: formData.industry,
+          companySize: formData.companySize,
+          website: formData.website,
+          headquarters: formData.headquarters,
+          description: formData.description,
+          contactRole: formData.contactRole,
+          hiringRoles: formData.hiringRoles,
+          requiredSkills: formData.requiredSkills,
+        });
+
+        // Mark as onboarded in database
+        await completeOnboarding();
+
+        // Also update UserContext for backward compatibility
+        updateUser({ ...formData, role: "company" });
+        setIsOnboarded(true);
+        
+        toast.success(`Welcome, ${formData.firstName}! Start posting challenges.`);
+        navigate("/company");
+      } catch (error: any) {
+        console.error("Error saving company profile:", error);
+        toast.error(error.message || "Failed to save profile. Please try again.");
+      } finally {
+        setIsSaving(false);
+      }
     }
   };
 
