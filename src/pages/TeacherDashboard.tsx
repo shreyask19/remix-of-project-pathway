@@ -1,320 +1,140 @@
-import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
-import { Progress } from "@/components/ui/progress";
-import { Button } from "@/components/ui/button";
-import {
-  LayoutDashboard,
-  Users,
-  Briefcase,
-  CheckSquare,
+import ClassOverview from "@/components/teacher/ClassOverview";
+import StudentProgress from "@/components/teacher/StudentProgress";
+import AssessmentApproval from "@/components/teacher/AssessmentApproval";
+import AlertsSection from "@/components/teacher/AlertsSection";
+import AcademicControl from "@/components/teacher/AcademicControl";
+import { 
+  LayoutDashboard, 
+  Users, 
+  CheckSquare, 
+  Bell,
   Settings,
-  HelpCircle,
-  TrendingUp,
-  FileCheck,
-  BarChart3,
-  Building2,
-  Filter,
-  Plus,
-  AlertTriangle,
-  ChevronLeft,
-  ChevronRight,
-  CheckCircle,
+  Award
 } from "lucide-react";
+import { useState } from "react";
 
 const TeacherDashboard = () => {
+  const [activeTab, setActiveTab] = useState("overview");
+
   const sidebarSections = [
     {
       title: "MAIN MENU",
       items: [
-        { label: "Overview", icon: <LayoutDashboard className="w-5 h-5" />, href: "/teacher" },
-        { label: "Students", icon: <Users className="w-5 h-5" />, href: "/teacher/students" },
-        { label: "Projects", icon: <Briefcase className="w-5 h-5" />, href: "/teacher/projects" },
-        { label: "Grading", icon: <CheckSquare className="w-5 h-5" />, href: "/teacher/grading", badge: 12 },
+        { label: "Overview", icon: <LayoutDashboard className="w-5 h-5" />, id: "overview" },
+        { label: "Students", icon: <Users className="w-5 h-5" />, id: "students" },
+        { label: "Approvals", icon: <CheckSquare className="w-5 h-5" />, id: "approvals", badge: 11 },
+        { label: "Alerts", icon: <Bell className="w-5 h-5" />, id: "alerts", badge: 6 },
       ],
     },
     {
-      title: "SYSTEM",
+      title: "SETTINGS",
       items: [
-        { label: "Settings", icon: <Settings className="w-5 h-5" />, href: "/teacher/settings" },
-        { label: "Support", icon: <HelpCircle className="w-5 h-5" />, href: "/teacher/support" },
+        { label: "Academic Control", icon: <Settings className="w-5 h-5" />, id: "settings" },
       ],
     },
   ];
 
-  const stats = [
-    {
-      label: "Active Projects",
-      value: "24",
-      badge: "↗ +12%",
-      badgeColor: "text-success",
-      icon: <TrendingUp className="w-5 h-5" />,
-    },
-    {
-      label: "Pending Approvals",
-      value: "12",
-      icon: <FileCheck className="w-5 h-5" />,
-    },
-    {
-      label: "Avg Class Score",
-      value: "85%",
-      badge: "↗ +5%",
-      badgeColor: "text-success",
-      icon: <BarChart3 className="w-5 h-5" />,
-    },
-    {
-      label: "Company Partners",
-      value: "7",
-      icon: <Building2 className="w-5 h-5" />,
-    },
-  ];
+  const renderContent = () => {
+    switch (activeTab) {
+      case "students":
+        return <StudentProgress />;
+      case "approvals":
+        return <AssessmentApproval />;
+      case "alerts":
+        return <AlertsSection />;
+      case "settings":
+        return <AcademicControl />;
+      default:
+        return <ClassOverview />;
+    }
+  };
 
-  const students = [
-    {
-      name: "Alex Chen",
-      project: "Tesla UX Redesign",
-      partner: "Tesla",
-      partnerColor: "bg-foreground",
-      status: "In Progress",
-      statusColor: "bg-primary/10 text-primary",
-      progress: 80,
-    },
-    {
-      name: "Sarah Jones",
-      project: "Marketing Strategy",
-      partner: "Spotify",
-      partnerColor: "bg-success",
-      status: "Awaiting Approval",
-      statusColor: "bg-warning/10 text-warning",
-      progress: 100,
-      showReview: true,
-    },
-    {
-      name: "Marcus Reed",
-      project: "Backend Architecture",
-      partner: "Google",
-      partnerColor: "bg-muted-foreground",
-      status: "Submitted",
-      statusColor: "bg-secondary text-muted-foreground",
-      progress: null,
-      pending: true,
-    },
-    {
-      name: "Lila Rossi",
-      project: "Brand Identity",
-      partner: "Airbnb",
-      partnerColor: "bg-destructive",
-      status: "In Progress",
-      statusColor: "bg-primary/10 text-primary",
-      progress: 45,
-    },
-  ];
-
-  const partnerFeedback = [
-    { name: "Tesla Design Team", message: "Updated project requirements...", color: "bg-foreground" },
-    { name: "Spotify Data Lead", message: "3 new datasets available...", color: "bg-success" },
-  ];
+  const getHeaderTitle = () => {
+    switch (activeTab) {
+      case "students":
+        return "Student Progress";
+      case "approvals":
+        return "Assessment Approvals";
+      case "alerts":
+        return "Alerts & Notifications";
+      case "settings":
+        return "Academic Control";
+      default:
+        return "Welcome back, Prof. Elena";
+    }
+  };
 
   return (
     <div className="flex h-screen bg-secondary/30">
-      <DashboardSidebar
-        title="Heuristic"
-        subtitle="Educator Portal"
-        sections={sidebarSections}
-        footer={
+      <aside className="w-64 h-screen bg-card border-r border-border flex flex-col">
+        <div className="p-5 border-b border-border">
+          <a href="/" className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-primary flex items-center justify-center">
+              <Award className="w-5 h-5 text-primary-foreground" />
+            </div>
+            <div>
+              <h1 className="font-bold font-display text-foreground">Heuristic</h1>
+              <p className="text-xs text-muted-foreground">Educator Portal</p>
+            </div>
+          </a>
+        </div>
+
+        <nav className="flex-1 p-4 overflow-y-auto">
+          {sidebarSections.map((section, idx) => (
+            <div key={idx} className="mb-6">
+              {section.title && (
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3 px-3">
+                  {section.title}
+                </p>
+              )}
+              <ul className="space-y-1">
+                {section.items.map((item) => (
+                  <li key={item.id}>
+                    <button
+                      onClick={() => setActiveTab(item.id)}
+                      className={`w-full sidebar-nav-item ${
+                        activeTab === item.id ? "sidebar-nav-item-active" : "sidebar-nav-item-inactive"
+                      }`}
+                    >
+                      {item.icon}
+                      <span>{item.label}</span>
+                      {item.badge && (
+                        <span className="ml-auto w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">
+                          {item.badge}
+                        </span>
+                      )}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </nav>
+
+        <div className="p-4 border-t border-border">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-secondary" />
-            <div className="flex-1">
+            <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">
+              ER
+            </div>
+            <div>
               <p className="text-sm font-medium text-foreground">Prof. Elena R.</p>
-              <p className="text-xs text-muted-foreground">Design Dept.</p>
+              <p className="text-xs text-muted-foreground">Design Department</p>
             </div>
           </div>
-        }
-      />
+        </div>
+      </aside>
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        <DashboardHeader
-          title="Dashboard"
-          subtitle="Welcome back, here's what's happening today."
-          showSearch
-          searchPlaceholder="Search students, projects..."
+        <DashboardHeader 
+          title={getHeaderTitle()} 
+          subtitle={activeTab === "overview" ? "Here's what's happening with your students today" : undefined}
+          showSearch={activeTab === "students"}
+          searchPlaceholder="Search students..."
         />
 
         <main className="flex-1 overflow-y-auto p-6">
-          {/* Stats Grid */}
-          <div className="grid md:grid-cols-4 gap-4 mb-8">
-            {stats.map((stat) => (
-              <div key={stat.label} className="stat-card">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
-                    {stat.icon}
-                  </div>
-                  {stat.badge && (
-                    <span className={`text-xs font-medium ${stat.badgeColor}`}>{stat.badge}</span>
-                  )}
-                  {stat.label === "Company Partners" && (
-                    <div className="flex -space-x-1">
-                      {["G", "T", "S"].map((letter, i) => (
-                        <div key={i} className="w-6 h-6 rounded-full bg-secondary border border-background flex items-center justify-center text-xs font-medium">
-                          {letter}
-                        </div>
-                      ))}
-                      <div className="w-6 h-6 rounded-full bg-secondary border border-background flex items-center justify-center text-xs">+4</div>
-                    </div>
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground mb-1">{stat.label}</p>
-                <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="grid lg:grid-cols-3 gap-6">
-            {/* Student Progress Table */}
-            <div className="lg:col-span-2">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-foreground">Student Progress</h2>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" className="gap-2 rounded-xl">
-                    <Filter className="w-4 h-4" />
-                    Filter
-                  </Button>
-                  <Button size="sm" className="gap-2 rounded-xl">
-                    <Plus className="w-4 h-4" />
-                    New Assignment
-                  </Button>
-                </div>
-              </div>
-
-              <div className="dashboard-card">
-                <table className="w-full">
-                  <thead>
-                    <tr className="text-left text-xs text-muted-foreground uppercase tracking-wider">
-                      <th className="pb-4 font-medium">Student</th>
-                      <th className="pb-4 font-medium">Project</th>
-                      <th className="pb-4 font-medium">Partner</th>
-                      <th className="pb-4 font-medium">Status</th>
-                      <th className="pb-4 font-medium">Progress</th>
-                      <th className="pb-4 font-medium">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {students.map((student, idx) => (
-                      <tr key={idx}>
-                        <td className="py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-secondary" />
-                            <span className="font-medium text-foreground">{student.name}</span>
-                          </div>
-                        </td>
-                        <td className="py-4 text-sm text-muted-foreground">{student.project}</td>
-                        <td className="py-4">
-                          <div className="flex items-center gap-2">
-                            <div className={`w-6 h-6 rounded-full ${student.partnerColor} flex items-center justify-center text-xs text-primary-foreground font-bold`}>
-                              {student.partner[0]}
-                            </div>
-                            <span className="text-sm text-muted-foreground">{student.partner}</span>
-                          </div>
-                        </td>
-                        <td className="py-4">
-                          <span className={`status-badge ${student.statusColor}`}>{student.status}</span>
-                        </td>
-                        <td className="py-4">
-                          {student.progress !== null ? (
-                            <div className="flex items-center gap-2">
-                              <Progress value={student.progress} className="w-16 h-1.5" />
-                              <span className="text-xs text-muted-foreground">{student.progress}%</span>
-                            </div>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">• Pending</span>
-                          )}
-                        </td>
-                        <td className="py-4">
-                          {student.showReview && (
-                            <Button size="sm" className="h-7 text-xs rounded-xl">Review</Button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                <div className="flex items-center justify-between pt-4 border-t border-border mt-4">
-                  <span className="text-xs text-muted-foreground">Showing 4 of 24 students</span>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="icon" className="w-7 h-7 rounded-xl">
-                      <ChevronLeft className="w-4 h-4" />
-                    </Button>
-                    <Button variant="outline" size="icon" className="w-7 h-7 rounded-xl">
-                      <ChevronRight className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Right Sidebar */}
-            <div className="space-y-6">
-              {/* Needs Attention */}
-              <div>
-                <div className="flex items-center gap-2 mb-4">
-                  <AlertTriangle className="w-4 h-4 text-warning" />
-                  <h2 className="font-bold text-foreground">Needs Attention</h2>
-                </div>
-
-                <div className="dashboard-card space-y-4">
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-full bg-secondary shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-foreground">Sarah Jones</p>
-                      <p className="text-xs text-muted-foreground">Marketing Strategy</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <CheckCircle className="w-4 h-4 text-success" />
-                    <span className="font-medium text-foreground">Grade A from Mentor</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    "Excellent strategic thinking and customer acquisition plan. Highly impressive work."
-                  </p>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="flex-1 rounded-xl">Dispute</Button>
-                    <Button size="sm" className="flex-1 rounded-xl">Approve</Button>
-                  </div>
-
-                  <div className="pt-4 border-t border-border">
-                    <div className="flex items-center gap-2 text-sm">
-                      <span className="w-2 h-2 rounded-full bg-destructive" />
-                      <span className="font-medium text-foreground">Project Blocked</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Marcus Reed is blocked on Google Maps integration.
-                    </p>
-                  </div>
-
-                  <button className="text-sm text-primary font-medium hover:underline">
-                    View All Notifications
-                  </button>
-                </div>
-              </div>
-
-              {/* Active Partner Feedback */}
-              <div>
-                <h2 className="font-bold text-foreground mb-4">Active Partner Feedback</h2>
-                <div className="dashboard-card space-y-3">
-                  {partnerFeedback.map((partner, idx) => (
-                    <div key={idx} className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-full ${partner.color} flex items-center justify-center text-xs text-primary-foreground font-bold`}>
-                        {partner.name[0]}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground">{partner.name}</p>
-                        <p className="text-xs text-muted-foreground truncate">{partner.message}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
+          {renderContent()}
         </main>
       </div>
     </div>
