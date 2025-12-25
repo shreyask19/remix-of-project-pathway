@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { 
   Award, 
   ExternalLink, 
@@ -10,18 +12,26 @@ import {
   Palette,
   Database,
   BarChart3,
-  Star
+  Star,
+  FileText,
+  CheckCircle
 } from "lucide-react";
+import { toast } from "sonner";
+import { useUser } from "@/contexts/UserContext";
 
 const Portfolio = () => {
+  const { user } = useUser();
+  const [isExporting, setIsExporting] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+
   const profile = {
-    name: "Alex Chen",
+    name: user?.firstName ? `${user.firstName} ${user.lastName}` : "Student",
     title: "Full Stack Developer",
-    university: "Stanford University",
+    university: user?.universityName || "University",
     totalCredits: 245,
     projectsCompleted: 8,
     skillScore: 94,
-    topSkills: ["React", "Node.js", "Python", "Figma", "PostgreSQL"],
+    topSkills: user?.existingSkills?.slice(0, 5) || ["React", "Node.js", "Python", "Figma", "PostgreSQL"],
   };
 
   const projects = [
@@ -74,60 +84,144 @@ const Portfolio = () => {
     { category: "Data", skills: ["SQL", "Python", "Data Analysis"], level: 78 },
   ];
 
+  const handleExportPDF = async () => {
+    setIsExporting(true);
+    // Simulate PDF generation
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    setIsExporting(false);
+    toast.success("Portfolio PDF exported successfully!", {
+      description: "Check your downloads folder",
+      action: {
+        label: "Open",
+        onClick: () => console.log("Opening PDF...")
+      }
+    });
+  };
+
+  const handleSharePortfolio = async () => {
+    setIsSharing(true);
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    const shareUrl = `https://heuristic.app/portfolio/${user?.firstName?.toLowerCase() || 'student'}`;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${profile.name}'s Portfolio`,
+          text: 'Check out my verified project portfolio on Heuristic',
+          url: shareUrl,
+        });
+      } catch (err) {
+        // User cancelled or error
+      }
+    } else {
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success("Portfolio link copied to clipboard!");
+    }
+    setIsSharing(false);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h2 className="text-xl font-bold text-foreground">My Portfolio</h2>
           <p className="text-muted-foreground">Showcase your work to potential employers</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" className="rounded-2xl gap-2">
-            <Download className="w-4 h-4" />
-            Export PDF
+          <Button 
+            variant="outline" 
+            className="rounded-2xl gap-2"
+            onClick={handleExportPDF}
+            disabled={isExporting}
+          >
+            {isExporting ? (
+              <>
+                <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                Exporting...
+              </>
+            ) : (
+              <>
+                <Download className="w-4 h-4" />
+                Export PDF
+              </>
+            )}
           </Button>
-          <Button className="rounded-2xl gap-2">
-            <Share2 className="w-4 h-4" />
-            Share Portfolio
+          <Button 
+            className="rounded-2xl gap-2"
+            onClick={handleSharePortfolio}
+            disabled={isSharing}
+          >
+            {isSharing ? (
+              <>
+                <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
+                Sharing...
+              </>
+            ) : (
+              <>
+                <Share2 className="w-4 h-4" />
+                Share Portfolio
+              </>
+            )}
           </Button>
         </div>
       </div>
 
       {/* Profile Card */}
-      <div className="dashboard-card">
+      <div className="glass-card">
         <div className="flex flex-col lg:flex-row gap-6">
           <div className="flex items-start gap-4">
             <div className="w-20 h-20 rounded-2xl bg-primary/10 text-primary flex items-center justify-center text-2xl font-bold">
-              AC
+              {profile.name.split(' ').map(n => n[0]).join('')}
             </div>
             <div>
               <h3 className="text-xl font-bold text-foreground">{profile.name}</h3>
               <p className="text-muted-foreground">{profile.title}</p>
               <p className="text-sm text-muted-foreground">{profile.university}</p>
-              <div className="flex items-center gap-4 mt-3">
-                <Button variant="outline" size="sm" className="rounded-xl gap-2">
-                  <Github className="w-4 h-4" />
-                  GitHub
-                </Button>
-                <Button variant="outline" size="sm" className="rounded-xl gap-2">
-                  <Globe className="w-4 h-4" />
-                  Website
-                </Button>
+              <div className="flex items-center gap-3 mt-3">
+                {user?.githubUrl && (
+                  <Button variant="outline" size="sm" className="rounded-xl gap-2" asChild>
+                    <a href={user.githubUrl} target="_blank" rel="noopener noreferrer">
+                      <Github className="w-4 h-4" />
+                      GitHub
+                    </a>
+                  </Button>
+                )}
+                {user?.linkedinUrl && (
+                  <Button variant="outline" size="sm" className="rounded-xl gap-2" asChild>
+                    <a href={user.linkedinUrl} target="_blank" rel="noopener noreferrer">
+                      <Globe className="w-4 h-4" />
+                      LinkedIn
+                    </a>
+                  </Button>
+                )}
+                {!user?.githubUrl && !user?.linkedinUrl && (
+                  <>
+                    <Button variant="outline" size="sm" className="rounded-xl gap-2">
+                      <Github className="w-4 h-4" />
+                      GitHub
+                    </Button>
+                    <Button variant="outline" size="sm" className="rounded-xl gap-2">
+                      <Globe className="w-4 h-4" />
+                      Website
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           </div>
 
           <div className="lg:ml-auto grid grid-cols-3 gap-6 text-center">
-            <div>
+            <div className="glass-card-subtle px-6 py-4">
               <p className="text-3xl font-bold text-primary">{profile.totalCredits}</p>
               <p className="text-sm text-muted-foreground">Total Credits</p>
             </div>
-            <div>
+            <div className="glass-card-subtle px-6 py-4">
               <p className="text-3xl font-bold text-foreground">{profile.projectsCompleted}</p>
               <p className="text-sm text-muted-foreground">Projects</p>
             </div>
-            <div>
+            <div className="glass-card-subtle px-6 py-4">
               <p className="text-3xl font-bold text-success">{profile.skillScore}%</p>
               <p className="text-sm text-muted-foreground">Skill Score</p>
             </div>
@@ -135,7 +229,7 @@ const Portfolio = () => {
         </div>
 
         {/* Top Skills */}
-        <div className="mt-6 pt-6 border-t border-border">
+        <div className="mt-6 pt-6 border-t border-border/50">
           <p className="text-sm font-medium text-muted-foreground mb-3">Top Skills</p>
           <div className="flex flex-wrap gap-2">
             {profile.topSkills.map((skill) => (
@@ -148,26 +242,25 @@ const Portfolio = () => {
       </div>
 
       {/* Skills Breakdown */}
-      <div className="dashboard-card">
-        <h3 className="font-bold text-foreground mb-4">Skills Breakdown</h3>
+      <div className="glass-card">
+        <h3 className="font-bold text-foreground mb-6">Skills Breakdown</h3>
         <div className="grid md:grid-cols-2 gap-6">
           {skillsByCategory.map((category) => (
-            <div key={category.category}>
-              <div className="flex items-center justify-between mb-2">
+            <div key={category.category} className="glass-card-subtle">
+              <div className="flex items-center justify-between mb-3">
                 <span className="font-medium text-foreground">{category.category}</span>
-                <span className="text-sm text-primary font-medium">{category.level}%</span>
+                <span className="text-sm text-primary font-bold">{category.level}%</span>
               </div>
-              <div className="h-2 bg-secondary rounded-full overflow-hidden mb-2">
+              <div className="h-2.5 bg-secondary rounded-full overflow-hidden mb-3">
                 <div 
-                  className="h-full bg-primary rounded-full transition-all"
+                  className="h-full bg-gradient-to-r from-primary to-primary/70 rounded-full transition-all duration-500"
                   style={{ width: `${category.level}%` }}
                 />
               </div>
               <div className="flex flex-wrap gap-1">
-                {category.skills.map((skill) => (
+                {category.skills.map((skill, i) => (
                   <span key={skill} className="text-xs text-muted-foreground">
-                    {skill}
-                    {category.skills.indexOf(skill) < category.skills.length - 1 && " • "}
+                    {skill}{i < category.skills.length - 1 && " • "}
                   </span>
                 ))}
               </div>
@@ -181,7 +274,7 @@ const Portfolio = () => {
         <h3 className="font-bold text-foreground mb-4">Completed Projects</h3>
         <div className="grid md:grid-cols-2 gap-4">
           {projects.map((project) => (
-            <div key={project.id} className="dashboard-card group hover:border-primary/30 transition-all">
+            <div key={project.id} className="glass-card group hover:border-primary/30 transition-all">
               <div className="flex items-start gap-4">
                 <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
                   {project.icon}
@@ -223,13 +316,16 @@ const Portfolio = () => {
       </div>
 
       {/* Verification Badge */}
-      <div className="dashboard-card bg-primary/5 border-primary/20">
+      <div className="glass-card bg-primary/5 border-primary/20">
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center">
             <Award className="w-7 h-7" />
           </div>
           <div className="flex-1">
-            <h3 className="font-bold text-foreground">Verified Portfolio</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="font-bold text-foreground">Verified Portfolio</h3>
+              <CheckCircle className="w-4 h-4 text-success" />
+            </div>
             <p className="text-sm text-muted-foreground">
               All projects are company-graded and verified by Heuristic. Share with confidence.
             </p>

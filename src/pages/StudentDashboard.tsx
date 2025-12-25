@@ -1,4 +1,3 @@
-import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import StudentOverview from "@/components/student/StudentOverview";
 import ActiveProject from "@/components/student/ActiveProject";
@@ -6,6 +5,7 @@ import ProjectMarketplace from "@/components/student/ProjectMarketplace";
 import SubmissionFlow from "@/components/student/SubmissionFlow";
 import HiringSection from "@/components/student/HiringSection";
 import Portfolio from "@/components/student/Portfolio";
+import { useUser } from "@/contexts/UserContext";
 import { 
   LayoutDashboard, 
   Briefcase, 
@@ -13,12 +13,24 @@ import {
   Upload,
   Building2,
   FolderOpen,
-  Settings
+  Settings,
+  Bell,
+  LogOut,
+  GraduationCap
 } from "lucide-react";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 const StudentDashboard = () => {
+  const navigate = useNavigate();
+  const { user, setUser, setIsOnboarded } = useUser();
   const [activeTab, setActiveTab] = useState("overview");
+
+  const userName = user?.firstName || "Student";
+  const userInitials = user?.firstName && user?.lastName 
+    ? `${user.firstName[0]}${user.lastName[0]}`
+    : "ST";
 
   const sidebarSections = [
     {
@@ -27,7 +39,7 @@ const StudentDashboard = () => {
         { label: "Projects", icon: <Briefcase className="w-5 h-5" />, id: "projects" },
         { label: "Submissions", icon: <Upload className="w-5 h-5" />, id: "submissions" },
         { label: "Credits", icon: <Award className="w-5 h-5" />, id: "credits" },
-        { label: "Hiring", icon: <Building2 className="w-5 h-5" />, id: "hiring" },
+        { label: "Hiring", icon: <Building2 className="w-5 h-5" />, id: "hiring", badge: 3 },
         { label: "Portfolio", icon: <FolderOpen className="w-5 h-5" />, id: "portfolio" },
       ],
     },
@@ -37,6 +49,12 @@ const StudentDashboard = () => {
       ],
     },
   ];
+
+  const handleLogout = () => {
+    setUser(null);
+    setIsOnboarded(false);
+    navigate("/");
+  };
 
   const renderContent = () => {
     switch (activeTab) {
@@ -59,12 +77,13 @@ const StudentDashboard = () => {
   };
 
   return (
-    <div className="flex h-screen bg-secondary/30">
-      <aside className="w-64 h-screen bg-card border-r border-border flex flex-col">
-        <div className="p-5 border-b border-border">
+    <div className="flex h-screen bg-gradient-to-br from-background via-background to-secondary/20">
+      {/* Sidebar */}
+      <aside className="w-64 h-screen bg-card/80 backdrop-blur-xl border-r border-border flex flex-col">
+        <div className="p-5 border-b border-border/50">
           <a href="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-primary flex items-center justify-center">
-              <Award className="w-5 h-5 text-primary-foreground" />
+            <div className="w-10 h-10 rounded-2xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
+              <GraduationCap className="w-5 h-5 text-primary-foreground" />
             </div>
             <div>
               <h1 className="font-bold font-display text-foreground">Heuristic</h1>
@@ -87,6 +106,11 @@ const StudentDashboard = () => {
                     >
                       {item.icon}
                       <span>{item.label}</span>
+                      {item.badge && (
+                        <span className="ml-auto w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-medium">
+                          {item.badge}
+                        </span>
+                      )}
                     </button>
                   </li>
                 ))}
@@ -95,24 +119,49 @@ const StudentDashboard = () => {
           ))}
         </nav>
 
-        <div className="p-4 border-t border-border">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">
-              AC
+        <div className="p-4 border-t border-border/50">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary/70 text-primary-foreground flex items-center justify-center font-bold shadow-lg">
+              {userInitials}
             </div>
-            <div>
-              <p className="text-sm font-medium text-foreground">Alex Chen</p>
-              <p className="text-xs text-muted-foreground">alex@stanford.edu</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-foreground truncate">
+                {user?.firstName} {user?.lastName}
+              </p>
+              <p className="text-xs text-muted-foreground truncate">{user?.email || "student@university.edu"}</p>
             </div>
           </div>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
+            onClick={handleLogout}
+          >
+            <LogOut className="w-4 h-4" />
+            Sign out
+          </Button>
         </div>
       </aside>
 
+      {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        <DashboardHeader 
-          title={activeTab === "overview" ? "Welcome back, Alex" : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} 
-          subtitle={activeTab === "overview" ? "Track your progress and build your future" : undefined}
-        />
+        {/* Header */}
+        <header className="h-16 border-b border-border/50 bg-card/50 backdrop-blur-sm px-6 flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-foreground">
+              {activeTab === "overview" ? `Welcome back, ${userName}` : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+            </h1>
+            {activeTab === "overview" && (
+              <p className="text-sm text-muted-foreground">Track your progress and build your future</p>
+            )}
+          </div>
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" className="relative rounded-xl">
+              <Bell className="w-5 h-5" />
+              <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full" />
+            </Button>
+          </div>
+        </header>
 
         <main className="flex-1 overflow-y-auto p-6">
           {renderContent()}
