@@ -1,4 +1,6 @@
 import { Award, TrendingUp, CheckCircle, ArrowRight } from "lucide-react";
+import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 
 const CreditSystem = () => {
   const creditTiers = [
@@ -8,15 +10,33 @@ const CreditSystem = () => {
     { credits: "150+", level: "Expert", perks: ["Job offers pipeline", "Portfolio featured"] },
   ];
 
+  const benefits = [
+    "Credits count toward internal assessment marks",
+    "Earn credits from real company grading",
+    "Transparent progress tracking dashboard",
+    "Request exam exemption at 150 credits",
+  ];
+
   return (
     <section className="py-24 lg:py-32 bg-background">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid lg:grid-cols-2 gap-16 items-center">
           {/* Left Content */}
-          <div className="animate-fade-in-up">
-            <p className="text-sm font-bold text-primary uppercase tracking-widest mb-4">
+          <motion.div
+            initial={{ opacity: 0, x: -40 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.7 }}
+          >
+            <motion.p 
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2 }}
+              className="text-sm font-bold text-primary uppercase tracking-widest mb-4"
+            >
               Credit System
-            </p>
+            </motion.p>
             <h2 className="text-4xl sm:text-5xl font-black font-display text-foreground leading-tight mb-6">
               Credits Replace<br />
               <span className="text-primary">Grades Forever</span>
@@ -28,40 +48,62 @@ const CreditSystem = () => {
 
             {/* Credit Benefits */}
             <div className="space-y-4 mb-8">
-              {[
-                "Credits count toward internal assessment marks",
-                "Earn credits from real company grading",
-                "Transparent progress tracking dashboard",
-                "Request exam exemption at 150 credits",
-              ].map((benefit, idx) => (
-                <div key={idx} className="flex items-center gap-3 animate-fade-in" style={{ animationDelay: `${idx * 100}ms` }}>
-                  <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              {benefits.map((benefit, idx) => (
+                <motion.div 
+                  key={idx} 
+                  className="flex items-center gap-3"
+                  initial={{ opacity: 0, x: -20 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: 0.3 + idx * 0.1, duration: 0.5 }}
+                >
+                  <motion.div 
+                    className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0"
+                    whileHover={{ scale: 1.2, backgroundColor: "hsl(var(--primary))" }}
+                    transition={{ type: "spring", stiffness: 400 }}
+                  >
                     <CheckCircle className="w-4 h-4 text-primary" />
-                  </div>
+                  </motion.div>
                   <span className="text-foreground font-medium">{benefit}</span>
-                </div>
+                </motion.div>
               ))}
             </div>
 
-            <a href="/student" className="inline-flex items-center gap-2 text-primary font-bold hover:gap-3 transition-all duration-300 group">
-              See your potential credits
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </a>
-          </div>
+            <motion.div
+              whileHover={{ x: 5 }}
+              transition={{ type: "spring", stiffness: 300 }}
+            >
+              <Link 
+                to="/for-students" 
+                className="inline-flex items-center gap-2 text-primary font-bold hover:gap-3 transition-all duration-300 group"
+              >
+                See your potential credits
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </Link>
+            </motion.div>
+          </motion.div>
 
           {/* Right - Credit Tiers */}
-          <div className="space-y-4 animate-fade-in-up animation-delay-200">
+          <div className="space-y-4">
             {creditTiers.map((tier, idx) => (
-              <div
+              <motion.div
                 key={tier.level}
+                initial={{ opacity: 0, x: 40 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ delay: idx * 0.1, duration: 0.6 }}
+                whileHover={{ scale: 1.02, y: -4 }}
                 className="premium-card group relative overflow-hidden"
-                style={{ animationDelay: `${idx * 100}ms` }}
               >
                 <div className="flex items-center gap-6">
                   {/* Credit Badge */}
-                  <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
+                  <motion.div 
+                    className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center shrink-0"
+                    whileHover={{ rotate: 5, scale: 1.1 }}
+                    transition={{ type: "spring", stiffness: 300 }}
+                  >
                     <Award className="w-7 h-7 text-primary-foreground" />
-                  </div>
+                  </motion.div>
 
                   {/* Content */}
                   <div className="flex-1 min-w-0">
@@ -81,9 +123,14 @@ const CreditSystem = () => {
                   </div>
 
                   {/* Arrow */}
-                  <TrendingUp className="w-5 h-5 text-muted-foreground/50 shrink-0" />
+                  <motion.div
+                    animate={{ x: [0, 4, 0] }}
+                    transition={{ duration: 2, repeat: Infinity, delay: idx * 0.2 }}
+                  >
+                    <TrendingUp className="w-5 h-5 text-muted-foreground/50 shrink-0" />
+                  </motion.div>
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>
