@@ -5,6 +5,7 @@ import SubmissionFlow from "@/components/student/SubmissionFlow";
 import HiringSection from "@/components/student/HiringSection";
 import Portfolio from "@/components/student/Portfolio";
 import HeuristicLogo from "@/components/HeuristicLogo";
+import NotificationDropdown from "@/components/NotificationDropdown";
 import { useUser } from "@/contexts/UserContext";
 import { 
   LayoutDashboard, 
@@ -14,7 +15,6 @@ import {
   Building2,
   FolderOpen,
   Settings,
-  Bell,
   LogOut
 } from "lucide-react";
 import { useState } from "react";
@@ -148,10 +148,7 @@ const StudentDashboard = () => {
               <p className="text-sm text-muted-foreground">Track your progress and build your future</p>
             )}
           </div>
-          <Button variant="ghost" size="icon" className="relative rounded-lg">
-            <Bell className="w-5 h-5" />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full" />
-          </Button>
+          <NotificationDropdown role="student" />
         </header>
 
         <main className="flex-1 overflow-y-auto p-6 bg-secondary/30">
