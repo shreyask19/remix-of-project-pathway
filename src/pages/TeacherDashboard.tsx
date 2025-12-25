@@ -14,6 +14,7 @@ import {
   LayoutDashboard, 
   Users, 
   CheckSquare, 
+  Bell,
   Settings,
   BarChart3,
   LogOut
