@@ -11,7 +11,6 @@ const steps = [
     description: "Work on actual backlog items from companies like Spotify, Tesla, and Airbnb. No more hypothetical assignments.",
     icon: Briefcase,
     image: buildProjectIcon,
-    color: "from-primary to-blue-400",
   },
   {
     number: "02",
@@ -19,7 +18,6 @@ const steps = [
     description: "Each completed project earns verified credits. These replace traditional internal assessment marks.",
     icon: Award,
     image: creditsIcon,
-    color: "from-emerald-500 to-teal-400",
   },
   {
     number: "03",
@@ -27,7 +25,6 @@ const steps = [
     description: "Accumulate enough credits and request exam exemption. Teachers approve based on your project portfolio.",
     icon: FileX,
     image: skipExamIcon,
-    color: "from-primary to-accent",
   },
   {
     number: "04",
@@ -35,16 +32,12 @@ const steps = [
     description: "Companies see your actual work. Top performers receive direct job offers before graduation.",
     icon: Handshake,
     image: getHiredIcon,
-    color: "from-accent to-pink-500",
   },
 ];
 
 const HowItWorks = () => {
   return (
-    <section className="py-24 lg:py-32 relative">
-      {/* Background */}
-      <div className="absolute inset-0 -z-10 bg-gradient-to-b from-background via-muted/30 to-background" />
-
+    <section className="py-24 lg:py-32 bg-secondary/30">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center mb-20">
@@ -53,7 +46,7 @@ const HowItWorks = () => {
           </p>
           <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black font-display text-foreground leading-tight animate-fade-in-up">
             From Projects to<br />
-            <span className="gradient-text">Career Success</span>
+            <span className="text-primary">Career Success</span>
           </h2>
         </div>
 
@@ -65,12 +58,9 @@ const HowItWorks = () => {
               className="group premium-card relative overflow-hidden animate-fade-in-up"
               style={{ animationDelay: `${idx * 100}ms` }}
             >
-              {/* Gradient Overlay on Hover */}
-              <div className={`absolute inset-0 bg-gradient-to-br ${step.color} opacity-0 group-hover:opacity-5 transition-opacity duration-500 rounded-3xl`} />
-              
               {/* Step Number */}
               <div className="flex items-center justify-between mb-6">
-                <span className={`text-sm font-black bg-gradient-to-r ${step.color} bg-clip-text text-transparent`}>
+                <span className="text-sm font-black text-primary">
                   {step.number}
                 </span>
                 {idx < steps.length - 1 && (
@@ -79,7 +69,7 @@ const HowItWorks = () => {
               </div>
 
               {/* Icon/Image */}
-              <div className="w-20 h-20 mb-6 rounded-2xl overflow-hidden bg-muted/50 group-hover:scale-110 transition-transform duration-500">
+              <div className="w-20 h-20 mb-6 rounded-2xl overflow-hidden bg-secondary group-hover:scale-110 transition-transform duration-300">
                 <img 
                   src={step.image} 
                   alt={step.title}
@@ -96,14 +86,9 @@ const HowItWorks = () => {
               </p>
 
               {/* Decorative Line */}
-              <div className={`absolute bottom-0 left-0 w-0 h-1 bg-gradient-to-r ${step.color} group-hover:w-full transition-all duration-500 rounded-b-3xl`} />
+              <div className="absolute bottom-0 left-0 w-0 h-1 bg-primary group-hover:w-full transition-all duration-500 rounded-b-3xl" />
             </div>
           ))}
-        </div>
-
-        {/* Connection Line (Desktop) */}
-        <div className="hidden lg:block relative mt-12">
-          <div className="absolute top-1/2 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent -translate-y-1/2" />
         </div>
       </div>
     </section>

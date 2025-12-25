@@ -1,5 +1,4 @@
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
-import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard,
@@ -8,7 +7,6 @@ import {
   Users,
   BarChart3,
   Settings,
-  Box,
   Plus,
   Bell,
   MessageSquare,
@@ -45,7 +43,6 @@ const CompanyDashboard = () => {
       badge: "+1 this week",
       badgeColor: "text-success",
       icon: <Briefcase className="w-5 h-5" />,
-      iconBg: "bg-primary/10 text-primary",
     },
     {
       label: "Pending Reviews",
@@ -53,7 +50,6 @@ const CompanyDashboard = () => {
       badge: "+4 since yesterday",
       badgeColor: "text-success",
       icon: <Eye className="w-5 h-5" />,
-      iconBg: "bg-warning/10 text-warning",
     },
     {
       label: "Top Candidates",
@@ -61,7 +57,6 @@ const CompanyDashboard = () => {
       badge: "+2 new",
       badgeColor: "text-success",
       icon: <Users className="w-5 h-5" />,
-      iconBg: "bg-success/10 text-success",
     },
   ];
 
@@ -119,7 +114,7 @@ const CompanyDashboard = () => {
       challenge: "React Dashboard",
       submitted: "5 hours ago",
       status: "New",
-      statusColor: "bg-muted text-muted-foreground",
+      statusColor: "bg-secondary text-muted-foreground",
       showReview: true,
     },
     {
@@ -142,15 +137,14 @@ const CompanyDashboard = () => {
   ];
 
   return (
-    <div className="flex h-screen bg-muted/30">
+    <div className="flex h-screen bg-secondary/30">
       <DashboardSidebar
-        logo={<Box className="w-5 h-5" />}
-        title="EduPlatform"
-        subtitle="Enterprise"
+        title="Heuristic"
+        subtitle="Company Portal"
         sections={sidebarSections}
         footer={
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-muted" />
+            <div className="w-10 h-10 rounded-full bg-secondary" />
             <div className="flex-1">
               <p className="text-sm font-medium text-foreground">Alex Morgan</p>
               <p className="text-xs text-muted-foreground">Acme Corp</p>
@@ -160,13 +154,13 @@ const CompanyDashboard = () => {
       />
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Custom Header for Company */}
+        {/* Custom Header */}
         <header className="h-16 border-b border-border bg-card px-6 flex items-center justify-between">
           <div className="relative flex-1 max-w-md">
             <input
               type="text"
               placeholder="Search challenges, candidates..."
-              className="w-full pl-10 pr-4 py-2 bg-muted rounded-lg text-sm border-0 outline-none focus:ring-2 focus:ring-primary/20"
+              className="w-full pl-10 pr-4 py-2 bg-secondary rounded-2xl text-sm border-0 outline-none focus:ring-2 focus:ring-primary/20"
             />
             <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -174,14 +168,14 @@ const CompanyDashboard = () => {
           </div>
 
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" className="relative">
+            <Button variant="ghost" size="icon" className="relative rounded-xl">
               <Bell className="w-5 h-5" />
               <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full" />
             </Button>
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" className="rounded-xl">
               <MessageSquare className="w-5 h-5" />
             </Button>
-            <Button className="gap-2">
+            <Button className="gap-2 rounded-2xl">
               <Plus className="w-4 h-4" />
               Create Challenge
             </Button>
@@ -192,7 +186,7 @@ const CompanyDashboard = () => {
           {/* Welcome */}
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-foreground">Good morning, Acme Corp</h1>
-            <p className="text-muted-foreground">Here's what's happening with your engineering challenges today.</p>
+            <p className="text-muted-foreground">Here is what is happening with your engineering challenges today.</p>
           </div>
 
           {/* Stats Grid */}
@@ -205,7 +199,7 @@ const CompanyDashboard = () => {
                     <p className="text-3xl font-bold text-foreground">{stat.value}</p>
                     <p className={`text-xs ${stat.badgeColor} mt-1`}>{stat.badge}</p>
                   </div>
-                  <div className={`w-12 h-12 rounded-xl ${stat.iconBg} flex items-center justify-center`}>
+                  <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
                     {stat.icon}
                   </div>
                 </div>
@@ -219,7 +213,7 @@ const CompanyDashboard = () => {
               {/* Active Challenges */}
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold text-foreground">Active Challenges</h2>
+                  <h2 className="text-lg font-bold text-foreground">Active Challenges</h2>
                   <button className="text-sm text-primary font-medium hover:underline">View All</button>
                 </div>
 
@@ -227,12 +221,12 @@ const CompanyDashboard = () => {
                   {challenges.map((challenge) => (
                     <div key={challenge.title} className="dashboard-card">
                       <div className="flex gap-4">
-                        <div className="w-20 h-20 rounded-lg overflow-hidden shrink-0">
+                        <div className="w-20 h-20 rounded-2xl overflow-hidden shrink-0">
                           <img src={challenge.image} alt={challenge.title} className="w-full h-full object-cover" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-semibold text-foreground">{challenge.title}</h3>
+                            <h3 className="font-bold text-foreground">{challenge.title}</h3>
                             <span className="status-badge status-badge-success">{challenge.status}</span>
                           </div>
                           <p className="text-sm text-muted-foreground mb-2">{challenge.description}</p>
@@ -258,10 +252,10 @@ const CompanyDashboard = () => {
               {/* Recent Submissions */}
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold text-foreground">Recent Submissions</h2>
+                  <h2 className="text-lg font-bold text-foreground">Recent Submissions</h2>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm">Filter</Button>
-                    <Button variant="outline" size="sm">Sort</Button>
+                    <Button variant="outline" size="sm" className="rounded-xl">Filter</Button>
+                    <Button variant="outline" size="sm" className="rounded-xl">Sort</Button>
                   </div>
                 </div>
 
@@ -294,8 +288,6 @@ const CompanyDashboard = () => {
                           <td className="py-4 text-sm text-muted-foreground">{sub.submitted}</td>
                           <td className="py-4">
                             <span className={`status-badge ${sub.statusColor}`}>
-                              {sub.status === "Under Review" && "• "}
-                              {sub.status === "Qualified" && "• "}
                               {sub.status}
                             </span>
                           </td>
@@ -320,7 +312,7 @@ const CompanyDashboard = () => {
               {/* Talent Spotlight */}
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="font-semibold text-foreground">Talent Spotlight</h2>
+                  <h2 className="font-bold text-foreground">Talent Spotlight</h2>
                   <button className="text-muted-foreground hover:text-foreground">•••</button>
                 </div>
 
@@ -328,7 +320,7 @@ const CompanyDashboard = () => {
                   {talentSpotlight.map((talent, idx) => (
                     <div key={idx} className="dashboard-card">
                       <div className="flex items-start gap-3 mb-3">
-                        <div className="w-10 h-10 rounded-full bg-muted shrink-0" />
+                        <div className="w-10 h-10 rounded-full bg-secondary shrink-0" />
                         <div className="flex-1">
                           <div className="flex items-center justify-between">
                             <p className="font-medium text-foreground">{talent.name}</p>
@@ -342,7 +334,7 @@ const CompanyDashboard = () => {
                           <span key={skill} className="status-badge status-badge-muted text-xs">{skill}</span>
                         ))}
                       </div>
-                      <Button variant="outline" size="sm" className="w-full">View Profile</Button>
+                      <Button variant="outline" size="sm" className="w-full rounded-xl">View Profile</Button>
                     </div>
                   ))}
                 </div>
@@ -350,17 +342,17 @@ const CompanyDashboard = () => {
 
               {/* Pipeline Health */}
               <div>
-                <h2 className="font-semibold text-foreground mb-4">Pipeline Health</h2>
+                <h2 className="font-bold text-foreground mb-4">Pipeline Health</h2>
                 <div className="dashboard-card space-y-4">
                   {pipelineHealth.map((item, idx) => (
                     <div key={idx} className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center text-muted-foreground">
+                        <div className="w-8 h-8 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground">
                           {item.icon}
                         </div>
                         <span className="text-sm text-muted-foreground">{item.label}</span>
                       </div>
-                      <span className="font-semibold text-foreground">{item.count}</span>
+                      <span className="font-bold text-foreground">{item.count}</span>
                     </div>
                   ))}
                 </div>
