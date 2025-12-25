@@ -1,7 +1,7 @@
 import Navbar from "@/components/landing/Navbar";
 import Hero from "@/components/landing/Hero";
-import TrustedBy from "@/components/landing/TrustedBy";
-import Process from "@/components/landing/Process";
+import HowItWorks from "@/components/landing/HowItWorks";
+import CreditSystem from "@/components/landing/CreditSystem";
 import Ecosystem from "@/components/landing/Ecosystem";
 import CTA from "@/components/landing/CTA";
 import Footer from "@/components/landing/Footer";
@@ -12,8 +12,8 @@ const Index = () => {
       <Navbar />
       <main>
         <Hero />
-        <TrustedBy />
-        <Process />
+        <HowItWorks />
+        <CreditSystem />
         <Ecosystem />
         <CTA />
       </main>

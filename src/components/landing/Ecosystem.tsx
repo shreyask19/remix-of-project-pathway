@@ -1,90 +1,109 @@
-import { GraduationCap, BookOpen, Building2, Check, ArrowRight } from "lucide-react";
-import studentsImg from "@/assets/students-collab.png";
-import educatorImg from "@/assets/educator.png";
-import companiesImg from "@/assets/companies.png";
+import { GraduationCap, BookOpen, Building2, ArrowRight, Zap, Shield, TrendingUp } from "lucide-react";
+import educationCareerImg from "@/assets/education-career.png";
 
-const audiences = [
+const features = [
   {
-    label: "For Students",
+    title: "For Students",
     icon: GraduationCap,
-    color: "text-primary",
-    image: studentsImg,
-    description: "Stop wasting time on disposable assignments. Build a portfolio that gets you hired while earning your degree.",
-    features: ["Real world experience", "Earn for your resume"],
+    color: "from-primary to-blue-400",
+    description: "Build a portfolio that proves your skills while earning your degree. Skip exams, get hired.",
+    highlights: ["Real company projects", "Verified credentials", "Direct job pipeline"],
     link: "/student",
   },
   {
-    label: "For Educators",
+    title: "For Educators",
     icon: BookOpen,
-    color: "text-warning",
-    image: educatorImg,
-    description: "Keep your curriculum cutting-edge without the burnout. Let us handle grading and focus on mentorship.",
-    features: ["AI-assisted grading", "Industry-aligned course design"],
+    color: "from-amber-500 to-orange-400",
+    description: "Automate grading with AI. Focus on mentorship while companies evaluate student work.",
+    highlights: ["AI-assisted grading", "Real-time analytics", "Industry curriculum"],
     link: "/teacher",
   },
   {
-    label: "For Companies",
+    title: "For Companies",
     icon: Building2,
-    color: "text-destructive",
-    image: companiesImg,
-    description: "Skip the boring résumé screen. Access a pipeline of pre-vetted, work-ready talent.",
-    features: ["Clear hiring costs", "3.2x conversion rate"],
+    color: "from-accent to-pink-500",
+    description: "Access pre-vetted talent who've already proven themselves on real projects.",
+    highlights: ["Work-ready graduates", "Lower hiring costs", "3.2x conversion rate"],
     link: "/company",
   },
 ];
 
 const Ecosystem = () => {
   return (
-    <section className="py-20 lg:py-28 bg-muted/30">
+    <section className="py-24 lg:py-32 relative overflow-hidden">
+      {/* Background */}
+      <div className="absolute inset-0 -z-10 bg-gradient-to-b from-muted/30 via-background to-muted/30" />
+
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
-          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">ECOSYSTEM</p>
-          <h2 className="text-3xl lg:text-4xl font-bold text-foreground">
-            Built for the entire education loop
+        {/* Section Header */}
+        <div className="text-center mb-20">
+          <p className="text-sm font-bold text-primary uppercase tracking-widest mb-4 animate-fade-in">
+            Ecosystem
+          </p>
+          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black font-display text-foreground leading-tight animate-fade-in-up">
+            One Platform,<br />
+            <span className="gradient-text">Everyone Wins</span>
           </h2>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-6">
-          {audiences.map((audience) => (
-            <div
-              key={audience.label}
-              className="dashboard-card group hover:shadow-lg transition-all duration-300"
-            >
-              <div className="aspect-[4/3] rounded-lg overflow-hidden mb-5">
-                <img
-                  src={audience.image}
-                  alt={audience.label}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                />
-              </div>
-
-              <div className={`flex items-center gap-2 mb-3 ${audience.color}`}>
-                <audience.icon className="w-4 h-4" />
-                <span className="text-sm font-medium">{audience.label}</span>
-              </div>
-
-              <p className="text-sm text-muted-foreground mb-4">
-                {audience.description}
-              </p>
-
-              <ul className="space-y-2 mb-4">
-                {audience.features.map((feature) => (
-                  <li key={feature} className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Check className="w-4 h-4 text-success" />
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-
-              <a
-                href={audience.link}
-                className="inline-flex items-center gap-1 text-sm text-primary font-medium hover:underline"
-              >
-                Learn more
-                <ArrowRight className="w-4 h-4" />
-              </a>
+        {/* Central Visual + Cards */}
+        <div className="relative">
+          {/* Central Image (Large Screens) */}
+          <div className="hidden lg:block absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 z-10">
+            <div className="relative w-full h-full">
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-accent/20 rounded-full blur-3xl animate-pulse-subtle" />
+              <img 
+                src={educationCareerImg} 
+                alt="Education to career transition" 
+                className="w-full h-full object-contain relative z-10 animate-float drop-shadow-2xl"
+              />
             </div>
-          ))}
+          </div>
+
+          {/* Feature Cards */}
+          <div className="grid lg:grid-cols-3 gap-6 lg:gap-12">
+            {features.map((feature, idx) => (
+              <div
+                key={feature.title}
+                className={`premium-card group animate-fade-in-up ${
+                  idx === 1 ? 'lg:mt-16' : ''
+                }`}
+                style={{ animationDelay: `${idx * 150}ms` }}
+              >
+                {/* Icon */}
+                <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${feature.color} flex items-center justify-center mb-6 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300`}>
+                  <feature.icon className="w-7 h-7 text-white" />
+                </div>
+
+                {/* Content */}
+                <h3 className="text-2xl font-bold font-display text-foreground mb-3">
+                  {feature.title}
+                </h3>
+                <p className="text-muted-foreground mb-6 leading-relaxed">
+                  {feature.description}
+                </p>
+
+                {/* Highlights */}
+                <ul className="space-y-2 mb-6">
+                  {feature.highlights.map((highlight) => (
+                    <li key={highlight} className="flex items-center gap-2 text-sm text-foreground">
+                      <Zap className="w-4 h-4 text-primary" />
+                      {highlight}
+                    </li>
+                  ))}
+                </ul>
+
+                {/* Link */}
+                <a 
+                  href={feature.link}
+                  className={`inline-flex items-center gap-2 text-sm font-bold bg-gradient-to-r ${feature.color} bg-clip-text text-transparent hover:gap-3 transition-all duration-300`}
+                >
+                  Explore {feature.title.split(" ")[1]}
+                  <ArrowRight className="w-4 h-4 text-primary" />
+                </a>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </section>
