@@ -1,10 +1,10 @@
-import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import StudentOverview from "@/components/student/StudentOverview";
 import ActiveProject from "@/components/student/ActiveProject";
 import ProjectMarketplace from "@/components/student/ProjectMarketplace";
 import SubmissionFlow from "@/components/student/SubmissionFlow";
 import HiringSection from "@/components/student/HiringSection";
 import Portfolio from "@/components/student/Portfolio";
+import HeuristicLogo from "@/components/HeuristicLogo";
 import { useUser } from "@/contexts/UserContext";
 import { 
   LayoutDashboard, 
@@ -15,8 +15,7 @@ import {
   FolderOpen,
   Settings,
   Bell,
-  LogOut,
-  GraduationCap
+  LogOut
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -77,19 +76,14 @@ const StudentDashboard = () => {
   };
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-background via-background to-secondary/20">
+    <div className="flex h-screen bg-background">
       {/* Sidebar */}
-      <aside className="w-64 h-screen bg-card/80 backdrop-blur-xl border-r border-border flex flex-col">
-        <div className="p-5 border-b border-border/50">
-          <a href="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
-              <GraduationCap className="w-5 h-5 text-primary-foreground" />
-            </div>
-            <div>
-              <h1 className="font-bold font-display text-foreground">Heuristic</h1>
-              <p className="text-xs text-muted-foreground">Student Portal</p>
-            </div>
+      <aside className="w-64 h-screen bg-card border-r border-border flex flex-col">
+        <div className="p-5 border-b border-border">
+          <a href="/">
+            <HeuristicLogo size="md" />
           </a>
+          <p className="text-xs text-muted-foreground mt-1 ml-[52px]">Student Portal</p>
         </div>
 
         <nav className="flex-1 p-4 overflow-y-auto">
@@ -119,9 +113,9 @@ const StudentDashboard = () => {
           ))}
         </nav>
 
-        <div className="p-4 border-t border-border/50">
+        <div className="p-4 border-t border-border">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary/70 text-primary-foreground flex items-center justify-center font-bold shadow-lg">
+            <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold text-sm">
               {userInitials}
             </div>
             <div className="flex-1 min-w-0">
@@ -145,25 +139,22 @@ const StudentDashboard = () => {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <header className="h-16 border-b border-border/50 bg-card/50 backdrop-blur-sm px-6 flex items-center justify-between">
+        <header className="h-16 border-b border-border bg-card px-6 flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-foreground">
+            <h1 className="text-lg font-semibold text-foreground">
               {activeTab === "overview" ? `Welcome back, ${userName}` : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
             </h1>
             {activeTab === "overview" && (
               <p className="text-sm text-muted-foreground">Track your progress and build your future</p>
             )}
           </div>
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" className="relative rounded-xl">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full" />
-            </Button>
-          </div>
+          <Button variant="ghost" size="icon" className="relative rounded-lg">
+            <Bell className="w-5 h-5" />
+            <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full" />
+          </Button>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-y-auto p-6 bg-secondary/30">
           {renderContent()}
         </main>
       </div>
