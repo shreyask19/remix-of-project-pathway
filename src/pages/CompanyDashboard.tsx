@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useUser } from "@/contexts/UserContext";
 import { useNavigate } from "react-router-dom";
 import HeuristicLogo from "@/components/HeuristicLogo";
+import NotificationDropdown from "@/components/NotificationDropdown";
 import CompanyOverview from "@/components/company/CompanyOverview";
 import ProjectCreation from "@/components/company/ProjectCreation";
 import SubmissionReview from "@/components/company/SubmissionReview";
@@ -18,7 +19,6 @@ import {
   Settings,
   Building2,
   Plus,
-  Bell,
   LogOut
 } from "lucide-react";
 
@@ -163,10 +163,7 @@ const CompanyDashboard = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" className="relative rounded-lg">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full" />
-            </Button>
+            <NotificationDropdown role="company" />
             {activeTab === "challenges" && (
               <Button className="gap-2 rounded-lg">
                 <Plus className="w-4 h-4" />

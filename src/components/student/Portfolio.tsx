@@ -1,6 +1,5 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { 
   Award, 
   ExternalLink, 
@@ -13,21 +12,26 @@ import {
   Database,
   BarChart3,
   Star,
-  FileText,
-  CheckCircle
+  CheckCircle,
+  Camera,
+  Linkedin
 } from "lucide-react";
 import { toast } from "sonner";
 import { useUser } from "@/contexts/UserContext";
+import jsPDF from "jspdf";
 
 const Portfolio = () => {
-  const { user } = useUser();
+  const { user, updateUser } = useUser();
   const [isExporting, setIsExporting] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const profile = {
     name: user?.firstName ? `${user.firstName} ${user.lastName}` : "Student",
     title: "Full Stack Developer",
     university: user?.universityName || "University",
+    email: user?.email || "student@university.edu",
     totalCredits: 245,
     projectsCompleted: 8,
     skillScore: 94,
@@ -44,6 +48,7 @@ const Portfolio = () => {
       skills: ["Figma", "UX Research"],
       icon: <Palette className="w-5 h-5" />,
       completedAt: "Dec 2024",
+      description: "Redesigned mobile banking experience with focus on Gen-Z users"
     },
     {
       id: 2,
@@ -54,6 +59,7 @@ const Portfolio = () => {
       skills: ["Node.js", "REST API"],
       icon: <Database className="w-5 h-5" />,
       completedAt: "Nov 2024",
+      description: "Built robust payment processing with webhook handling"
     },
     {
       id: 3,
@@ -64,6 +70,7 @@ const Portfolio = () => {
       skills: ["React", "TypeScript"],
       icon: <Code className="w-5 h-5" />,
       completedAt: "Oct 2024",
+      description: "Created accessible component library for booking flows"
     },
     {
       id: 4,
@@ -74,6 +81,7 @@ const Portfolio = () => {
       skills: ["Python", "SQL"],
       icon: <BarChart3 className="w-5 h-5" />,
       completedAt: "Sep 2024",
+      description: "Analyzed listening patterns for SEA market insights"
     },
   ];
 
@@ -84,25 +92,144 @@ const Portfolio = () => {
     { category: "Data", skills: ["SQL", "Python", "Data Analysis"], level: 78 },
   ];
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("Image too large", { description: "Please select an image under 5MB" });
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfileImage(reader.result as string);
+        toast.success("Profile photo updated!");
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleExportPDF = async () => {
     setIsExporting(true);
-    // Simulate PDF generation
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    try {
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      
+      // Header
+      pdf.setFillColor(30, 64, 175); // Primary blue
+      pdf.rect(0, 0, pageWidth, 50, 'F');
+      
+      // Name and title
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(24);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(profile.name, 20, 25);
+      
+      pdf.setFontSize(12);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(profile.title, 20, 35);
+      pdf.text(profile.university, 20, 42);
+      
+      // Stats section
+      pdf.setTextColor(30, 64, 175);
+      pdf.setFontSize(14);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Summary', 20, 65);
+      
+      pdf.setTextColor(0, 0, 0);
+      pdf.setFontSize(11);
+      pdf.setFont('helvetica', 'normal');
+      
+      const stats = [
+        `Total Credits Earned: ${profile.totalCredits}`,
+        `Projects Completed: ${profile.projectsCompleted}`,
+        `Skill Score: ${profile.skillScore}%`,
+      ];
+      
+      stats.forEach((stat, i) => {
+        pdf.text(stat, 20, 75 + (i * 7));
+      });
+      
+      // Skills section
+      pdf.setTextColor(30, 64, 175);
+      pdf.setFontSize(14);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Top Skills', 20, 105);
+      
+      pdf.setTextColor(0, 0, 0);
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(profile.topSkills.join('  •  '), 20, 115);
+      
+      // Skills breakdown
+      pdf.setTextColor(30, 64, 175);
+      pdf.setFontSize(14);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Skills Breakdown', 20, 130);
+      
+      pdf.setTextColor(0, 0, 0);
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'normal');
+      
+      skillsByCategory.forEach((cat, i) => {
+        const yPos = 140 + (i * 12);
+        pdf.text(`${cat.category}: ${cat.level}%`, 20, yPos);
+        pdf.text(cat.skills.join(', '), 70, yPos);
+      });
+      
+      // Projects section
+      pdf.setTextColor(30, 64, 175);
+      pdf.setFontSize(14);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Completed Projects', 20, 195);
+      
+      pdf.setTextColor(0, 0, 0);
+      pdf.setFontSize(10);
+      
+      projects.forEach((project, i) => {
+        const yPos = 205 + (i * 20);
+        
+        if (yPos > 270) {
+          pdf.addPage();
+        }
+        
+        const adjustedY = yPos > 270 ? 20 + (i - 3) * 20 : yPos;
+        
+        pdf.setFont('helvetica', 'bold');
+        pdf.text(project.title, 20, adjustedY);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(`${project.company} | ${project.credits} Credits | ${project.grade}`, 20, adjustedY + 5);
+        pdf.text(`Skills: ${project.skills.join(', ')} | ${project.completedAt}`, 20, adjustedY + 10);
+      });
+      
+      // Footer
+      const lastPageHeight = pdf.internal.pageSize.getHeight();
+      pdf.setFontSize(8);
+      pdf.setTextColor(128, 128, 128);
+      pdf.text('Generated by Heuristic | Verified Portfolio', pageWidth / 2, lastPageHeight - 10, { align: 'center' });
+      pdf.text(new Date().toLocaleDateString(), pageWidth / 2, lastPageHeight - 5, { align: 'center' });
+      
+      // Save the PDF
+      pdf.save(`${profile.name.replace(' ', '_')}_Portfolio.pdf`);
+      
+      toast.success("Portfolio PDF exported!", {
+        description: "Check your downloads folder",
+      });
+    } catch (error) {
+      toast.error("Export failed", {
+        description: "Please try again",
+      });
+    }
+    
     setIsExporting(false);
-    toast.success("Portfolio PDF exported successfully!", {
-      description: "Check your downloads folder",
-      action: {
-        label: "Open",
-        onClick: () => console.log("Opening PDF...")
-      }
-    });
   };
 
   const handleSharePortfolio = async () => {
     setIsSharing(true);
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    const shareUrl = `https://heuristic.app/portfolio/${user?.firstName?.toLowerCase() || 'student'}`;
+    const shareUrl = `https://heuristic.app/portfolio/${user?.firstName?.toLowerCase() || 'student'}-${Date.now().toString(36)}`;
     
     if (navigator.share) {
       try {
@@ -111,12 +238,16 @@ const Portfolio = () => {
           text: 'Check out my verified project portfolio on Heuristic',
           url: shareUrl,
         });
+        toast.success("Portfolio shared!");
       } catch (err) {
-        // User cancelled or error
+        await navigator.clipboard.writeText(shareUrl);
+        toast.success("Portfolio link copied to clipboard!");
       }
     } else {
       await navigator.clipboard.writeText(shareUrl);
-      toast.success("Portfolio link copied to clipboard!");
+      toast.success("Portfolio link copied!", {
+        description: shareUrl,
+      });
     }
     setIsSharing(false);
   };
@@ -132,7 +263,7 @@ const Portfolio = () => {
         <div className="flex items-center gap-3">
           <Button 
             variant="outline" 
-            className="rounded-2xl gap-2"
+            className="rounded-xl gap-2"
             onClick={handleExportPDF}
             disabled={isExporting}
           >
@@ -149,7 +280,7 @@ const Portfolio = () => {
             )}
           </Button>
           <Button 
-            className="rounded-2xl gap-2"
+            className="rounded-xl gap-2"
             onClick={handleSharePortfolio}
             disabled={isSharing}
           >
@@ -172,41 +303,59 @@ const Portfolio = () => {
       <div className="glass-card">
         <div className="flex flex-col lg:flex-row gap-6">
           <div className="flex items-start gap-4">
-            <div className="w-20 h-20 rounded-2xl bg-primary/10 text-primary flex items-center justify-center text-2xl font-bold">
-              {profile.name.split(' ').map(n => n[0]).join('')}
+            {/* Profile Photo */}
+            <div className="relative group">
+              <div className="w-20 h-20 rounded-2xl bg-primary/10 text-primary flex items-center justify-center text-2xl font-bold overflow-hidden">
+                {profileImage ? (
+                  <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  profile.name.split(' ').map(n => n[0]).join('')
+                )}
+              </div>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="absolute inset-0 bg-black/50 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <Camera className="w-5 h-5 text-white" />
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="hidden"
+              />
             </div>
             <div>
               <h3 className="text-xl font-bold text-foreground">{profile.name}</h3>
               <p className="text-muted-foreground">{profile.title}</p>
               <p className="text-sm text-muted-foreground">{profile.university}</p>
-              <div className="flex items-center gap-3 mt-3">
-                {user?.githubUrl && (
+              <div className="flex items-center gap-2 mt-3">
+                {user?.githubUrl ? (
                   <Button variant="outline" size="sm" className="rounded-xl gap-2" asChild>
                     <a href={user.githubUrl} target="_blank" rel="noopener noreferrer">
                       <Github className="w-4 h-4" />
                       GitHub
                     </a>
                   </Button>
+                ) : (
+                  <Button variant="outline" size="sm" className="rounded-xl gap-2">
+                    <Github className="w-4 h-4" />
+                    GitHub
+                  </Button>
                 )}
-                {user?.linkedinUrl && (
+                {user?.linkedinUrl ? (
                   <Button variant="outline" size="sm" className="rounded-xl gap-2" asChild>
                     <a href={user.linkedinUrl} target="_blank" rel="noopener noreferrer">
-                      <Globe className="w-4 h-4" />
+                      <Linkedin className="w-4 h-4" />
                       LinkedIn
                     </a>
                   </Button>
-                )}
-                {!user?.githubUrl && !user?.linkedinUrl && (
-                  <>
-                    <Button variant="outline" size="sm" className="rounded-xl gap-2">
-                      <Github className="w-4 h-4" />
-                      GitHub
-                    </Button>
-                    <Button variant="outline" size="sm" className="rounded-xl gap-2">
-                      <Globe className="w-4 h-4" />
-                      Website
-                    </Button>
-                  </>
+                ) : (
+                  <Button variant="outline" size="sm" className="rounded-xl gap-2">
+                    <Linkedin className="w-4 h-4" />
+                    LinkedIn
+                  </Button>
                 )}
               </div>
             </div>
@@ -233,7 +382,7 @@ const Portfolio = () => {
           <p className="text-sm font-medium text-muted-foreground mb-3">Top Skills</p>
           <div className="flex flex-wrap gap-2">
             {profile.topSkills.map((skill) => (
-              <span key={skill} className="px-4 py-2 rounded-2xl bg-primary/10 text-primary text-sm font-medium">
+              <span key={skill} className="px-4 py-2 rounded-xl bg-primary/10 text-primary text-sm font-medium">
                 {skill}
               </span>
             ))}
@@ -276,7 +425,7 @@ const Portfolio = () => {
           {projects.map((project) => (
             <div key={project.id} className="glass-card group hover:border-primary/30 transition-all">
               <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
+                <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
                   {project.icon}
                 </div>
                 <div className="flex-1">
@@ -294,6 +443,7 @@ const Portfolio = () => {
                       {project.grade}
                     </span>
                   </div>
+                  <p className="text-sm text-muted-foreground mt-2 line-clamp-1">{project.description}</p>
                   <div className="flex items-center justify-between mt-3">
                     <div className="flex flex-wrap gap-1">
                       {project.skills.map((skill) => (
@@ -330,7 +480,7 @@ const Portfolio = () => {
               All projects are company-graded and verified by Heuristic. Share with confidence.
             </p>
           </div>
-          <Button variant="outline" className="rounded-2xl gap-2">
+          <Button variant="outline" className="rounded-xl gap-2" onClick={handleSharePortfolio}>
             <ExternalLink className="w-4 h-4" />
             View Public Profile
           </Button>

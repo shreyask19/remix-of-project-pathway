@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useUser } from "@/contexts/UserContext";
 import { useNavigate } from "react-router-dom";
 import HeuristicLogo from "@/components/HeuristicLogo";
+import NotificationDropdown from "@/components/NotificationDropdown";
 import ClassOverview from "@/components/teacher/ClassOverview";
 import StudentProgress from "@/components/teacher/StudentProgress";
 import AssessmentApproval from "@/components/teacher/AssessmentApproval";
@@ -13,7 +14,6 @@ import {
   LayoutDashboard, 
   Users, 
   CheckSquare, 
-  Bell,
   Settings,
   BarChart3,
   LogOut
@@ -164,10 +164,7 @@ const TeacherDashboard = () => {
               <p className="text-sm text-muted-foreground">Here's what's happening with your students today</p>
             )}
           </div>
-          <Button variant="ghost" size="icon" className="relative rounded-lg">
-            <Bell className="w-5 h-5" />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full" />
-          </Button>
+          <NotificationDropdown role="teacher" />
         </header>
 
         <main className="flex-1 overflow-y-auto p-6 bg-secondary/30">
