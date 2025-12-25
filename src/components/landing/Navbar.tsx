@@ -35,7 +35,7 @@ const Navbar = () => {
             </Link>
           </div>
           
-          <Link to="/student/onboarding">
+          <Link to="/get-started">
             <Button 
               size="lg" 
               className="rounded-2xl px-8 font-semibold bg-primary hover:bg-primary/90 transition-all duration-300 hover:shadow-lg"
