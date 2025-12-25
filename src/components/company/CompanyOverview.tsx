@@ -14,14 +14,14 @@ const CompanyOverview = () => {
       label: "Active Challenges",
       value: "5",
       change: "+2 this month",
-      changeColor: "text-success",
+      changeColor: "text-primary",
       icon: <Briefcase className="w-5 h-5" />,
     },
     {
       label: "Submissions Received",
       value: "47",
       change: "+12 this week",
-      changeColor: "text-success",
+      changeColor: "text-primary",
       icon: <Eye className="w-5 h-5" />,
     },
     {
@@ -35,7 +35,7 @@ const CompanyOverview = () => {
       label: "Hires Made",
       value: "6",
       change: "This quarter",
-      changeColor: "text-success",
+      changeColor: "text-primary",
       icon: <UserCheck className="w-5 h-5" />,
     },
   ];
@@ -55,7 +55,7 @@ const CompanyOverview = () => {
       student: "David Chen",
       time: "5 hours ago",
       icon: <UserCheck className="w-4 h-4" />,
-      iconBg: "bg-success/10 text-success",
+      iconBg: "bg-primary/15 text-primary",
     },
     {
       type: "review",
@@ -63,7 +63,7 @@ const CompanyOverview = () => {
       student: "Sarah Johnson",
       time: "1 day ago",
       icon: <CheckCircle className="w-4 h-4" />,
-      iconBg: "bg-success/10 text-success",
+      iconBg: "bg-primary/10 text-primary",
     },
   ];
 
@@ -81,7 +81,7 @@ const CompanyOverview = () => {
         {stats.map((stat) => (
           <div key={stat.label} className="stat-card">
             <div className="flex items-start justify-between mb-4">
-              <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
                 {stat.icon}
               </div>
             </div>

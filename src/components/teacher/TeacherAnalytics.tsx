@@ -97,12 +97,12 @@ const TeacherAnalytics = () => {
         {overviewStats.map((stat) => (
           <div key={stat.label} className="glass-card">
             <div className="flex items-start justify-between mb-3">
-              <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
                 {stat.icon}
               </div>
               <span className={`flex items-center gap-1 text-xs font-medium ${
-                stat.trend === "up" ? "text-success" : 
-                stat.trend === "down" ? "text-success" : 
+                stat.trend === "up" ? "text-primary" : 
+                stat.trend === "down" ? "text-primary" : 
                 "text-muted-foreground"
               }`}>
                 {stat.trend === "up" && <TrendingUp className="w-3 h-3" />}
@@ -120,7 +120,7 @@ const TeacherAnalytics = () => {
         {/* Credit Distribution */}
         <div className="glass-card">
           <h3 className="font-bold text-foreground mb-6 flex items-center gap-2">
-            <BarChart3 className="w-5 h-5 text-emerald-500" />
+            <BarChart3 className="w-5 h-5 text-primary" />
             Credit Distribution
           </h3>
           <div className="space-y-4">
@@ -129,10 +129,10 @@ const TeacherAnalytics = () => {
                 <span className="w-16 text-sm text-muted-foreground">{item.range}</span>
                 <div className="flex-1 h-8 bg-secondary rounded-lg overflow-hidden">
                   <div 
-                    className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-lg flex items-center justify-end px-2"
+                    className="h-full bg-gradient-to-r from-primary to-primary/70 rounded-lg flex items-center justify-end px-2"
                     style={{ width: `${item.percentage * 3}%` }}
                   >
-                    <span className="text-xs font-medium text-white">{item.count}</span>
+                    <span className="text-xs font-medium text-primary-foreground">{item.count}</span>
                   </div>
                 </div>
                 <span className="w-12 text-sm text-muted-foreground text-right">{item.percentage}%</span>
@@ -144,7 +144,7 @@ const TeacherAnalytics = () => {
         {/* At-Risk Students */}
         <div className="glass-card">
           <h3 className="font-bold text-foreground mb-6 flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5 text-warning" />
+            <AlertTriangle className="w-5 h-5 text-primary" />
             At-Risk Students
           </h3>
           <div className="space-y-3">
@@ -160,8 +160,8 @@ const TeacherAnalytics = () => {
                 <div className="text-right">
                   <p className="text-sm font-medium text-foreground">{student.credits} cr</p>
                   <span className={`text-xs px-2 py-0.5 rounded-full ${
-                    student.urgency === "high" ? "bg-destructive/10 text-destructive" :
-                    student.urgency === "medium" ? "bg-warning/10 text-warning" :
+                    student.urgency === "high" ? "bg-primary/20 text-primary" :
+                    student.urgency === "medium" ? "bg-primary/10 text-primary/80" :
                     "bg-muted text-muted-foreground"
                   }`}>
                     {student.urgency}
@@ -181,7 +181,7 @@ const TeacherAnalytics = () => {
             <div key={subject.subject} className="p-4 rounded-xl bg-secondary/50">
               <h4 className="font-medium text-foreground mb-2">{subject.subject}</h4>
               <div className="flex items-end justify-between mb-2">
-                <span className="text-3xl font-bold text-emerald-500">{subject.avgScore}%</span>
+                <span className="text-3xl font-bold text-primary">{subject.avgScore}%</span>
                 <span className="text-xs text-muted-foreground">{subject.students} students</span>
               </div>
               <Progress value={subject.avgScore} className="h-2" />
