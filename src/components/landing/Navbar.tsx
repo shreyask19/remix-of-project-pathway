@@ -35,12 +35,14 @@ const Navbar = () => {
             </Link>
           </div>
           
-          <Button 
-            size="lg" 
-            className="rounded-2xl px-8 font-semibold bg-primary hover:bg-primary/90 transition-all duration-300 hover:shadow-lg"
-          >
-            Get Started
-          </Button>
+          <Link to="/student/onboarding">
+            <Button 
+              size="lg" 
+              className="rounded-2xl px-8 font-semibold bg-primary hover:bg-primary/90 transition-all duration-300 hover:shadow-lg"
+            >
+              Get Started
+            </Button>
+          </Link>
         </div>
       </div>
     </nav>
