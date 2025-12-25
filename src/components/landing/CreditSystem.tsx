@@ -35,8 +35,8 @@ const CreditSystem = () => {
                 "Request exam exemption at 150 credits",
               ].map((benefit, idx) => (
                 <div key={idx} className="flex items-center gap-3 animate-fade-in" style={{ animationDelay: `${idx * 100}ms` }}>
-                  <div className="w-6 h-6 rounded-full bg-success/10 flex items-center justify-center shrink-0">
-                    <CheckCircle className="w-4 h-4 text-success" />
+                  <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <CheckCircle className="w-4 h-4 text-primary" />
                   </div>
                   <span className="text-foreground font-medium">{benefit}</span>
                 </div>

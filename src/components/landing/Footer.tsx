@@ -1,6 +1,7 @@
 import { ArrowRight, Twitter, Linkedin, Github } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Link } from "react-router-dom";
 import HeuristicLogo from "@/components/HeuristicLogo";
 
 const Footer = () => {
@@ -36,13 +37,26 @@ const Footer = () => {
           <div>
             <h4 className="font-bold font-display text-foreground mb-6">Platform</h4>
             <ul className="space-y-4">
-              {["For Students", "For Educators", "For Companies", "Pricing"].map((item) => (
-                <li key={item}>
-                  <a href="#" className="text-muted-foreground hover:text-foreground transition-colors duration-300">
-                    {item}
-                  </a>
-                </li>
-              ))}
+              <li>
+                <Link to="/for-students" className="text-muted-foreground hover:text-foreground transition-colors duration-300">
+                  For Students
+                </Link>
+              </li>
+              <li>
+                <Link to="/for-educators" className="text-muted-foreground hover:text-foreground transition-colors duration-300">
+                  For Educators
+                </Link>
+              </li>
+              <li>
+                <Link to="/for-companies" className="text-muted-foreground hover:text-foreground transition-colors duration-300">
+                  For Companies
+                </Link>
+              </li>
+              <li>
+                <Link to="/get-started" className="text-muted-foreground hover:text-foreground transition-colors duration-300">
+                  Pricing
+                </Link>
+              </li>
             </ul>
           </div>
 

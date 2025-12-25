@@ -12,6 +12,9 @@ import TeacherDashboard from "./pages/TeacherDashboard";
 import TeacherOnboarding from "./pages/TeacherOnboarding";
 import CompanyDashboard from "./pages/CompanyDashboard";
 import CompanyOnboarding from "./pages/CompanyOnboarding";
+import ForStudents from "./pages/ForStudents";
+import ForEducators from "./pages/ForEducators";
+import ForCompanies from "./pages/ForCompanies";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +29,9 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/get-started" element={<RoleSelection />} />
+            <Route path="/for-students" element={<ForStudents />} />
+            <Route path="/for-educators" element={<ForEducators />} />
+            <Route path="/for-companies" element={<ForCompanies />} />
             <Route path="/student" element={<StudentDashboard />} />
             <Route path="/student/onboarding" element={<StudentOnboarding />} />
             <Route path="/teacher" element={<TeacherDashboard />} />

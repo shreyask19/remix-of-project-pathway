@@ -56,7 +56,7 @@ const Ecosystem = () => {
           {features.map((feature, idx) => (
             <div
               key={feature.title}
-              className="premium-card group animate-fade-in-up"
+              className="premium-card group animate-fade-in-up flex flex-col"
               style={{ animationDelay: `${idx * 150}ms` }}
             >
               {/* Icon */}
@@ -73,10 +73,10 @@ const Ecosystem = () => {
               </p>
 
               {/* Highlights */}
-              <ul className="space-y-4 mb-8">
+              <ul className="space-y-4 mb-8 flex-1">
                 {feature.highlights.map((highlight, hIdx) => (
                   <li key={hIdx} className="flex items-start gap-3 text-sm text-muted-foreground leading-relaxed">
-                    <CheckCircle className="w-5 h-5 text-success shrink-0 mt-0.5" />
+                    <CheckCircle className="w-5 h-5 text-primary shrink-0 mt-0.5" />
                     <span>{highlight}</span>
                   </li>
                 ))}
@@ -85,9 +85,9 @@ const Ecosystem = () => {
               {/* Link */}
               <a 
                 href={feature.link}
-                className="inline-flex items-center gap-2 text-sm font-bold text-primary hover:gap-3 transition-all duration-300"
+                className="inline-flex items-center gap-2 text-sm font-bold text-primary hover:gap-3 transition-all duration-300 mt-auto"
               >
-                Explore {feature.title.split(" ")[1]}
+                Learn More
                 <ArrowRight className="w-4 h-4" />
               </a>
             </div>
