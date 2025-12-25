@@ -15,9 +15,9 @@ const HeuristicLogo = forwardRef<HTMLDivElement, HeuristicLogoProps>(
     };
 
     const iconSizes = {
-      sm: 16,
-      md: 20,
-      lg: 24,
+      sm: 18,
+      md: 22,
+      lg: 26,
     };
 
     const textSizes = {
@@ -29,7 +29,7 @@ const HeuristicLogo = forwardRef<HTMLDivElement, HeuristicLogoProps>(
     return (
       <div ref={ref} className="flex items-center gap-3">
         <div className={`${sizeClasses[size]} bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/25`}>
-          {/* Custom H Logo Mark - Modern geometric design */}
+          {/* Professional Logo: Graduation Cap + Ascending Path */}
           <svg 
             width={iconSizes[size]} 
             height={iconSizes[size]} 
@@ -38,21 +38,42 @@ const HeuristicLogo = forwardRef<HTMLDivElement, HeuristicLogoProps>(
             xmlns="http://www.w3.org/2000/svg"
             className="text-primary-foreground"
           >
-            {/* Abstract H with forward momentum */}
+            {/* Graduation Cap - Diamond top */}
             <path 
-              d="M6 4V20M6 12H14M14 4V20" 
+              d="M12 2L20 6L12 10L4 6L12 2Z" 
+              fill="currentColor"
+              opacity="0.9"
+            />
+            {/* Cap base and tassel anchor */}
+            <path 
+              d="M6 8V13C6 14.5 8.5 16 12 16C15.5 16 18 14.5 18 13V8" 
               stroke="currentColor" 
-              strokeWidth="2.5" 
+              strokeWidth="1.5" 
+              strokeLinecap="round"
+              fill="none"
+            />
+            {/* Ascending path - career growth trajectory */}
+            <path 
+              d="M19 10V15L21 13" 
+              stroke="currentColor" 
+              strokeWidth="1.5" 
               strokeLinecap="round" 
               strokeLinejoin="round"
             />
-            <path 
-              d="M18 8L21 12L18 16" 
-              stroke="currentColor" 
-              strokeWidth="2" 
-              strokeLinecap="round" 
-              strokeLinejoin="round"
+            {/* Connection node - student to company bridge */}
+            <circle 
+              cx="12" 
+              cy="20" 
+              r="2" 
+              fill="currentColor"
               opacity="0.7"
+            />
+            {/* Rising connection line */}
+            <path 
+              d="M12 16V18" 
+              stroke="currentColor" 
+              strokeWidth="1.5" 
+              strokeLinecap="round"
             />
           </svg>
         </div>

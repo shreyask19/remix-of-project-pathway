@@ -16,7 +16,7 @@ const ClassOverview = () => {
       label: "Total Students",
       value: "156",
       change: "+12 this semester",
-      changeColor: "text-success",
+      changeColor: "text-primary",
       icon: <Users className="w-5 h-5" />,
     },
     {
@@ -30,14 +30,14 @@ const ClassOverview = () => {
       label: "Assessments Completed",
       value: "124",
       change: "80% completion rate",
-      changeColor: "text-success",
+      changeColor: "text-primary",
       icon: <CheckSquare className="w-5 h-5" />,
     },
     {
       label: "Pending Approvals",
       value: "18",
       change: "Action required",
-      changeColor: "text-warning",
+      changeColor: "text-muted-foreground",
       icon: <Clock className="w-5 h-5" />,
     },
   ];
@@ -56,7 +56,7 @@ const ClassOverview = () => {
         {stats.map((stat) => (
           <div key={stat.label} className="stat-card">
             <div className="flex items-start justify-between mb-4">
-              <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
                 {stat.icon}
               </div>
             </div>
@@ -77,16 +77,16 @@ const ClassOverview = () => {
           <Progress value={(semesterProgress.currentWeek / semesterProgress.totalWeeks) * 100} className="h-3 mb-4" />
           
           <div className="grid grid-cols-2 gap-4 mt-6">
-            <div className="p-4 rounded-2xl bg-secondary/50">
+            <div className="p-4 rounded-xl bg-secondary/50">
               <div className="flex items-center gap-2 mb-2">
                 <FileCheck className="w-4 h-4 text-primary" />
                 <span className="text-sm font-medium text-foreground">IA Deadline</span>
               </div>
               <p className="text-lg font-bold text-foreground">{semesterProgress.internalAssessmentDeadline}</p>
             </div>
-            <div className="p-4 rounded-2xl bg-warning/10 border border-warning/20">
+            <div className="p-4 rounded-xl bg-primary/10 border border-primary/20">
               <div className="flex items-center gap-2 mb-2">
-                <AlertTriangle className="w-4 h-4 text-warning" />
+                <AlertTriangle className="w-4 h-4 text-primary" />
                 <span className="text-sm font-medium text-foreground">Exemption Requests</span>
               </div>
               <p className="text-lg font-bold text-foreground">{semesterProgress.examExemptionRequests} pending</p>
@@ -100,37 +100,37 @@ const ClassOverview = () => {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-muted-foreground">Excellent Grades</span>
-                <span className="text-sm font-medium text-success">42%</span>
+                <span className="text-sm font-medium text-primary">42%</span>
               </div>
               <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                <div className="h-full bg-success rounded-full" style={{ width: "42%" }} />
+                <div className="h-full bg-primary rounded-full" style={{ width: "42%" }} />
               </div>
             </div>
             <div>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-muted-foreground">Satisfied Grades</span>
-                <span className="text-sm font-medium text-primary">35%</span>
+                <span className="text-sm font-medium text-primary/80">35%</span>
               </div>
               <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                <div className="h-full bg-primary rounded-full" style={{ width: "35%" }} />
+                <div className="h-full bg-primary/80 rounded-full" style={{ width: "35%" }} />
               </div>
             </div>
             <div>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-muted-foreground">Average Grades</span>
-                <span className="text-sm font-medium text-warning">18%</span>
+                <span className="text-sm font-medium text-primary/60">18%</span>
               </div>
               <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                <div className="h-full bg-warning rounded-full" style={{ width: "18%" }} />
+                <div className="h-full bg-primary/60 rounded-full" style={{ width: "18%" }} />
               </div>
             </div>
             <div>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-muted-foreground">Needs Improvement</span>
-                <span className="text-sm font-medium text-destructive">5%</span>
+                <span className="text-sm font-medium text-primary/40">5%</span>
               </div>
               <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                <div className="h-full bg-destructive rounded-full" style={{ width: "5%" }} />
+                <div className="h-full bg-primary/40 rounded-full" style={{ width: "5%" }} />
               </div>
             </div>
           </div>
