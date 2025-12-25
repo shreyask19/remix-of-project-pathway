@@ -1,13 +1,14 @@
 import React, { forwardRef } from "react";
 
-interface HeuristicLogoProps {
+export interface HeuristicLogoProps {
   size?: "sm" | "md" | "lg";
   showText?: boolean;
   variant?: "default" | "light";
+  className?: string;
 }
 
 const HeuristicLogo = forwardRef<HTMLDivElement, HeuristicLogoProps>(
-  ({ size = "md", showText = true, variant = "default" }, ref) => {
+  ({ size = "md", showText = true, variant = "default", className }, ref) => {
     const sizeClasses = {
       sm: "w-8 h-8",
       md: "w-10 h-10",
@@ -27,7 +28,7 @@ const HeuristicLogo = forwardRef<HTMLDivElement, HeuristicLogoProps>(
     };
 
     return (
-      <div ref={ref} className="flex items-center gap-3">
+      <div ref={ref} className={`flex items-center gap-3 ${className || ""}`}>
         <div className={`${sizeClasses[size]} bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/25`}>
           {/* Professional Logo: Graduation Cap + Ascending Path */}
           <svg 

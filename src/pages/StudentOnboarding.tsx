@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { 
@@ -18,18 +18,23 @@ import {
   Clock,
   Linkedin,
   Github,
-  AlertCircle
+  AlertCircle,
+  Loader2
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useUser } from "@/contexts/UserContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { useStudentProfile } from "@/hooks/useStudentProfile";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const StudentOnboarding = () => {
   const navigate = useNavigate();
-  const { updateUser, setIsOnboarded } = useUser();
+  const { user, completeOnboarding } = useAuth();
+  const { saveProfile } = useStudentProfile();
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 5;
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -157,7 +162,7 @@ const StudentOnboarding = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (!validateStep(currentStep)) {
       toast.error("Please fill in all required fields");
       return;
@@ -166,14 +171,48 @@ const StudentOnboarding = () => {
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
     } else {
-      // Complete onboarding
-      updateUser({
-        ...formData,
-        role: "student"
-      });
-      setIsOnboarded(true);
-      toast.success(`Welcome, ${formData.firstName}! Let's start building.`);
-      navigate("/student");
+      // Complete onboarding - save to database
+      setIsSubmitting(true);
+      try {
+        // Update profile with first/last name and phone
+        await supabase
+          .from("profiles")
+          .update({
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            phone: formData.phone,
+          })
+          .eq("id", user?.id);
+
+        // Save student profile
+        await saveProfile.mutateAsync({
+          universityName: formData.universityName,
+          universityProgram: formData.universityProgram,
+          batch: formData.batch,
+          graduationYear: formData.graduationYear,
+          currentSemester: formData.currentSemester,
+          currentSubjects: formData.currentSubjects,
+          existingSkills: formData.existingSkills,
+          interests: formData.interests,
+          careerGoals: formData.careerGoals,
+          preferredProjectTypes: formData.preferredProjectTypes,
+          linkedinUrl: formData.linkedinUrl,
+          githubUrl: formData.githubUrl,
+          portfolioUrl: formData.portfolioUrl,
+          hoursPerWeek: formData.hoursPerWeek,
+        });
+
+        // Mark onboarding as complete
+        await completeOnboarding();
+        
+        toast.success(`Welcome, ${formData.firstName}! Let's start building.`);
+        navigate("/student");
+      } catch (error) {
+        console.error("Onboarding error:", error);
+        toast.error("Failed to complete onboarding. Please try again.");
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -692,9 +731,18 @@ const StudentOnboarding = () => {
               ))}
             </div>
 
-            <Button onClick={handleNext} className="gap-2 rounded-xl">
-              {currentStep === totalSteps ? "Complete" : "Continue"}
-              {currentStep === totalSteps ? <Check className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
+            <Button onClick={handleNext} className="gap-2 rounded-xl" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  {currentStep === totalSteps ? "Complete" : "Continue"}
+                  {currentStep === totalSteps ? <Check className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
+                </>
+              )}
             </Button>
           </div>
         </div>
