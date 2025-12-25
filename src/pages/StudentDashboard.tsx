@@ -8,7 +8,6 @@ import {
   Award, 
   Users, 
   Settings,
-  GraduationCap,
   TrendingUp,
   Star,
   ArrowRight,
@@ -42,7 +41,6 @@ const StudentDashboard = () => {
       progress: 80,
       badge: "80% Goal",
       icon: <TrendingUp className="w-5 h-5" />,
-      iconBg: "bg-primary/10 text-primary",
     },
     {
       label: "Projects Completed",
@@ -50,7 +48,6 @@ const StudentDashboard = () => {
       badge: "↑ +2",
       badgeColor: "text-primary",
       icon: <Briefcase className="w-5 h-5" />,
-      iconBg: "bg-warning/10 text-warning",
     },
     {
       label: "Skill Score",
@@ -58,7 +55,6 @@ const StudentDashboard = () => {
       badge: "Top 5%",
       badgeColor: "text-warning",
       icon: <Star className="w-5 h-5" />,
-      iconBg: "bg-warning/10 text-warning",
     },
   ];
 
@@ -69,7 +65,6 @@ const StudentDashboard = () => {
       credits: 40,
       category: "MARKETING",
       icon: <BarChart3 className="w-5 h-5" />,
-      iconBg: "bg-primary",
     },
     {
       title: "Supply Chain Optimization",
@@ -77,7 +72,6 @@ const StudentDashboard = () => {
       credits: 65,
       category: "OPERATIONS",
       icon: <Check className="w-5 h-5" />,
-      iconBg: "bg-foreground",
     },
   ];
 
@@ -99,18 +93,17 @@ const StudentDashboard = () => {
   ];
 
   return (
-    <div className="flex h-screen bg-muted/30">
+    <div className="flex h-screen bg-secondary/30">
       <DashboardSidebar
-        logo={<GraduationCap className="w-5 h-5" />}
-        title="EduCorp"
+        title="Heuristic"
         subtitle="Student Portal"
         sections={sidebarSections}
         footer={
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-muted" />
+            <div className="w-10 h-10 rounded-full bg-secondary" />
             <div>
               <p className="text-sm font-medium text-foreground">Alex Chen</p>
-              <p className="text-xs text-muted-foreground">alex@educorp.com</p>
+              <p className="text-xs text-muted-foreground">alex@university.edu</p>
             </div>
           </div>
         }
@@ -125,7 +118,7 @@ const StudentDashboard = () => {
             {stats.map((stat) => (
               <div key={stat.label} className="stat-card">
                 <div className="flex items-start justify-between mb-4">
-                  <div className={`w-10 h-10 rounded-lg ${stat.iconBg} flex items-center justify-center`}>
+                  <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
                     {stat.icon}
                   </div>
                   <span className={`text-xs font-medium ${stat.badgeColor || "text-muted-foreground"}`}>
@@ -147,14 +140,14 @@ const StudentDashboard = () => {
           {/* Active Project */}
           <div className="mb-8">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-foreground">Active Project</h2>
+              <h2 className="text-lg font-bold text-foreground">Active Project</h2>
               <button className="text-sm text-primary font-medium hover:underline">View all</button>
             </div>
 
             <div className="dashboard-card">
               <div className="flex flex-col lg:flex-row gap-6">
                 <div className="lg:w-1/2">
-                  <div className="rounded-xl overflow-hidden bg-foreground aspect-video flex items-center justify-center">
+                  <div className="rounded-2xl overflow-hidden bg-foreground aspect-video flex items-center justify-center">
                     <img src={fintechMockup} alt="Fintech App Redesign" className="h-full object-contain" />
                   </div>
                 </div>
@@ -164,7 +157,7 @@ const StudentDashboard = () => {
                     <span className="text-sm text-muted-foreground">Revolut</span>
                     <span className="ml-auto status-badge bg-destructive/10 text-destructive">Due in 4 days</span>
                   </div>
-                  <h3 className="text-xl font-semibold text-foreground mb-2">Fintech App Redesign</h3>
+                  <h3 className="text-xl font-bold text-foreground mb-2">Fintech App Redesign</h3>
                   <p className="text-muted-foreground text-sm mb-4">
                     Redesign the user onboarding flow to increase conversion by 15%. Focus on simplification and trust signals.
                   </p>
@@ -174,12 +167,12 @@ const StudentDashboard = () => {
                   </div>
                   <Progress value={65} className="h-2 mb-4" />
                   <div className="flex items-center gap-4">
-                    <Button className="rounded-lg">Resume Work</Button>
+                    <Button className="rounded-2xl">Resume Work</Button>
                     <div className="flex -space-x-2">
                       {[1, 2, 3].map((i) => (
-                        <div key={i} className="w-8 h-8 rounded-full bg-muted border-2 border-background" />
+                        <div key={i} className="w-8 h-8 rounded-full bg-secondary border-2 border-background" />
                       ))}
-                      <div className="w-8 h-8 rounded-full bg-muted border-2 border-background flex items-center justify-center text-xs text-muted-foreground">
+                      <div className="w-8 h-8 rounded-full bg-secondary border-2 border-background flex items-center justify-center text-xs text-muted-foreground">
                         +2
                       </div>
                     </div>
@@ -194,12 +187,12 @@ const StudentDashboard = () => {
             {/* Recommended Projects */}
             <div className="lg:col-span-2">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-foreground">Recommended Projects</h2>
+                <h2 className="text-lg font-bold text-foreground">Recommended Projects</h2>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="icon" className="w-8 h-8">
+                  <Button variant="outline" size="icon" className="w-8 h-8 rounded-xl">
                     <ChevronLeft className="w-4 h-4" />
                   </Button>
-                  <Button variant="outline" size="icon" className="w-8 h-8">
+                  <Button variant="outline" size="icon" className="w-8 h-8 rounded-xl">
                     <ChevronRight className="w-4 h-4" />
                   </Button>
                 </div>
@@ -209,12 +202,12 @@ const StudentDashboard = () => {
                 {recommendedProjects.map((project) => (
                   <div key={project.title} className="dashboard-card">
                     <div className="flex items-start justify-between mb-3">
-                      <div className={`w-10 h-10 rounded-lg ${project.iconBg} text-primary-foreground flex items-center justify-center`}>
+                      <div className="w-10 h-10 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center">
                         {project.icon}
                       </div>
                       <span className="status-badge status-badge-muted">{project.category}</span>
                     </div>
-                    <h3 className="font-semibold text-foreground mb-2">{project.title}</h3>
+                    <h3 className="font-bold text-foreground mb-2">{project.title}</h3>
                     <p className="text-sm text-muted-foreground mb-4">{project.description}</p>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-primary font-medium">{project.credits} Credits</span>
@@ -229,7 +222,7 @@ const StudentDashboard = () => {
 
             {/* Recent Activity */}
             <div>
-              <h2 className="text-lg font-semibold text-foreground mb-4">Recent Activity</h2>
+              <h2 className="text-lg font-bold text-foreground mb-4">Recent Activity</h2>
               <div className="dashboard-card">
                 <ul className="space-y-4">
                   {recentActivity.map((activity, idx) => (

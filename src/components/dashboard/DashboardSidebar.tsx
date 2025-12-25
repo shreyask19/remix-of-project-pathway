@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { GraduationCap } from "lucide-react";
 
 interface NavItem {
   label: string;
@@ -15,29 +16,28 @@ interface SidebarSection {
 }
 
 interface DashboardSidebarProps {
-  logo: ReactNode;
   title: string;
   subtitle: string;
   sections: SidebarSection[];
   footer?: ReactNode;
 }
 
-const DashboardSidebar = ({ logo, title, subtitle, sections, footer }: DashboardSidebarProps) => {
+const DashboardSidebar = ({ title, subtitle, sections, footer }: DashboardSidebarProps) => {
   const location = useLocation();
 
   return (
     <aside className="w-64 h-screen bg-card border-r border-border flex flex-col">
       {/* Logo */}
       <div className="p-5 border-b border-border">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-            {logo}
+        <Link to="/" className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-primary flex items-center justify-center">
+            <GraduationCap className="w-5 h-5 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="font-semibold text-foreground">{title}</h1>
+            <h1 className="font-bold font-display text-foreground">{title}</h1>
             <p className="text-xs text-muted-foreground">{subtitle}</p>
           </div>
-        </div>
+        </Link>
       </div>
 
       {/* Navigation */}

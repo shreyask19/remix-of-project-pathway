@@ -9,7 +9,6 @@ import {
   CheckSquare,
   Settings,
   HelpCircle,
-  GraduationCap,
   TrendingUp,
   FileCheck,
   BarChart3,
@@ -20,7 +19,6 @@ import {
   ChevronLeft,
   ChevronRight,
   CheckCircle,
-  MessageCircle,
 } from "lucide-react";
 
 const TeacherDashboard = () => {
@@ -50,13 +48,11 @@ const TeacherDashboard = () => {
       badge: "↗ +12%",
       badgeColor: "text-success",
       icon: <TrendingUp className="w-5 h-5" />,
-      iconBg: "bg-primary/10 text-primary",
     },
     {
       label: "Pending Approvals",
       value: "12",
       icon: <FileCheck className="w-5 h-5" />,
-      iconBg: "bg-success/10 text-success",
     },
     {
       label: "Avg Class Score",
@@ -64,13 +60,11 @@ const TeacherDashboard = () => {
       badge: "↗ +5%",
       badgeColor: "text-success",
       icon: <BarChart3 className="w-5 h-5" />,
-      iconBg: "bg-primary/10 text-primary",
     },
     {
       label: "Company Partners",
       value: "7",
       icon: <Building2 className="w-5 h-5" />,
-      iconBg: "bg-muted text-foreground",
     },
   ];
 
@@ -100,7 +94,7 @@ const TeacherDashboard = () => {
       partner: "Google",
       partnerColor: "bg-muted-foreground",
       status: "Submitted",
-      statusColor: "bg-muted text-muted-foreground",
+      statusColor: "bg-secondary text-muted-foreground",
       progress: null,
       pending: true,
     },
@@ -115,37 +109,20 @@ const TeacherDashboard = () => {
     },
   ];
 
-  const attentionItems = [
-    {
-      type: "student",
-      name: "Sarah Jones",
-      subtitle: "Marketing Strategy",
-      grade: "Grade A from Mentor",
-      description: '"Excellent strategic thinking and customer acquisition plan. Highly imp...',
-      showActions: true,
-    },
-    {
-      type: "blocked",
-      title: "Project Blocked",
-      description: "Marcus Reed is blocked on Google Maps.",
-    },
-  ];
-
   const partnerFeedback = [
-    { name: "Tesla Design Team", message: "Updated project requir...", color: "bg-foreground" },
-    { name: "Spotify Data Lead", message: "3 new datasets availab...", color: "bg-success" },
+    { name: "Tesla Design Team", message: "Updated project requirements...", color: "bg-foreground" },
+    { name: "Spotify Data Lead", message: "3 new datasets available...", color: "bg-success" },
   ];
 
   return (
-    <div className="flex h-screen bg-muted/30">
+    <div className="flex h-screen bg-secondary/30">
       <DashboardSidebar
-        logo={<GraduationCap className="w-5 h-5" />}
-        title="EduPro"
-        subtitle=""
+        title="Heuristic"
+        subtitle="Educator Portal"
         sections={sidebarSections}
         footer={
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-muted" />
+            <div className="w-10 h-10 rounded-full bg-secondary" />
             <div className="flex-1">
               <p className="text-sm font-medium text-foreground">Prof. Elena R.</p>
               <p className="text-xs text-muted-foreground">Design Dept.</p>
@@ -168,7 +145,7 @@ const TeacherDashboard = () => {
             {stats.map((stat) => (
               <div key={stat.label} className="stat-card">
                 <div className="flex items-start justify-between mb-4">
-                  <div className={`w-10 h-10 rounded-lg ${stat.iconBg} flex items-center justify-center`}>
+                  <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
                     {stat.icon}
                   </div>
                   {stat.badge && (
@@ -177,11 +154,11 @@ const TeacherDashboard = () => {
                   {stat.label === "Company Partners" && (
                     <div className="flex -space-x-1">
                       {["G", "T", "S"].map((letter, i) => (
-                        <div key={i} className="w-6 h-6 rounded-full bg-muted border border-background flex items-center justify-center text-xs font-medium">
+                        <div key={i} className="w-6 h-6 rounded-full bg-secondary border border-background flex items-center justify-center text-xs font-medium">
                           {letter}
                         </div>
                       ))}
-                      <div className="w-6 h-6 rounded-full bg-muted border border-background flex items-center justify-center text-xs">+4</div>
+                      <div className="w-6 h-6 rounded-full bg-secondary border border-background flex items-center justify-center text-xs">+4</div>
                     </div>
                   )}
                 </div>
@@ -195,13 +172,13 @@ const TeacherDashboard = () => {
             {/* Student Progress Table */}
             <div className="lg:col-span-2">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-foreground">Student Progress</h2>
+                <h2 className="text-lg font-bold text-foreground">Student Progress</h2>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" className="gap-2">
+                  <Button variant="outline" size="sm" className="gap-2 rounded-xl">
                     <Filter className="w-4 h-4" />
                     Filter
                   </Button>
-                  <Button size="sm" className="gap-2">
+                  <Button size="sm" className="gap-2 rounded-xl">
                     <Plus className="w-4 h-4" />
                     New Assignment
                   </Button>
@@ -225,7 +202,7 @@ const TeacherDashboard = () => {
                       <tr key={idx}>
                         <td className="py-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-muted" />
+                            <div className="w-8 h-8 rounded-full bg-secondary" />
                             <span className="font-medium text-foreground">{student.name}</span>
                           </div>
                         </td>
@@ -253,7 +230,7 @@ const TeacherDashboard = () => {
                         </td>
                         <td className="py-4">
                           {student.showReview && (
-                            <Button size="sm" className="h-7 text-xs">Review</Button>
+                            <Button size="sm" className="h-7 text-xs rounded-xl">Review</Button>
                           )}
                         </td>
                       </tr>
@@ -263,10 +240,10 @@ const TeacherDashboard = () => {
                 <div className="flex items-center justify-between pt-4 border-t border-border mt-4">
                   <span className="text-xs text-muted-foreground">Showing 4 of 24 students</span>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="icon" className="w-7 h-7">
+                    <Button variant="outline" size="icon" className="w-7 h-7 rounded-xl">
                       <ChevronLeft className="w-4 h-4" />
                     </Button>
-                    <Button variant="outline" size="icon" className="w-7 h-7">
+                    <Button variant="outline" size="icon" className="w-7 h-7 rounded-xl">
                       <ChevronRight className="w-4 h-4" />
                     </Button>
                   </div>
@@ -280,13 +257,12 @@ const TeacherDashboard = () => {
               <div>
                 <div className="flex items-center gap-2 mb-4">
                   <AlertTriangle className="w-4 h-4 text-warning" />
-                  <h2 className="font-semibold text-foreground">Needs Attention</h2>
+                  <h2 className="font-bold text-foreground">Needs Attention</h2>
                 </div>
 
                 <div className="dashboard-card space-y-4">
-                  {/* Sarah Jones card */}
                   <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-full bg-muted shrink-0" />
+                    <div className="w-10 h-10 rounded-full bg-secondary shrink-0" />
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-foreground">Sarah Jones</p>
                       <p className="text-xs text-muted-foreground">Marketing Strategy</p>
@@ -297,11 +273,11 @@ const TeacherDashboard = () => {
                     <span className="font-medium text-foreground">Grade A from Mentor</span>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    "Excellent strategic thinking and customer acquisition plan. Highly imp...
+                    "Excellent strategic thinking and customer acquisition plan. Highly impressive work."
                   </p>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="flex-1">Dispute</Button>
-                    <Button size="sm" className="flex-1">Approve</Button>
+                    <Button variant="outline" size="sm" className="flex-1 rounded-xl">Dispute</Button>
+                    <Button size="sm" className="flex-1 rounded-xl">Approve</Button>
                   </div>
 
                   <div className="pt-4 border-t border-border">
@@ -310,7 +286,7 @@ const TeacherDashboard = () => {
                       <span className="font-medium text-foreground">Project Blocked</span>
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Marcus Reed is blocked on Google Maps.
+                      Marcus Reed is blocked on Google Maps integration.
                     </p>
                   </div>
 
@@ -322,7 +298,7 @@ const TeacherDashboard = () => {
 
               {/* Active Partner Feedback */}
               <div>
-                <h2 className="font-semibold text-foreground mb-4">Active Partner Feedback</h2>
+                <h2 className="font-bold text-foreground mb-4">Active Partner Feedback</h2>
                 <div className="dashboard-card space-y-3">
                   {partnerFeedback.map((partner, idx) => (
                     <div key={idx} className="flex items-center gap-3">

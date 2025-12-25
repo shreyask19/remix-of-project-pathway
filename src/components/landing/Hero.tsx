@@ -1,30 +1,19 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Sparkles } from "lucide-react";
-import heroShapes from "@/assets/hero-shapes.png";
 
 const Hero = () => {
   return (
-    <section className="relative pt-32 pb-20 lg:pt-44 lg:pb-32 overflow-hidden">
+    <section className="relative pt-32 pb-20 lg:pt-44 lg:pb-32 overflow-hidden bg-background">
       {/* Background Elements */}
       <div className="absolute inset-0 -z-10">
-        <div className="absolute top-20 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse-subtle" />
-        <div className="absolute bottom-20 right-1/4 w-80 h-80 bg-accent/10 rounded-full blur-3xl animate-pulse-subtle animation-delay-200" />
-      </div>
-
-      {/* Floating Shapes */}
-      <div className="absolute right-0 top-32 w-1/3 h-full -z-10 opacity-60">
-        <img 
-          src={heroShapes} 
-          alt="" 
-          className="w-full h-auto animate-float object-contain"
-          aria-hidden="true"
-        />
+        <div className="absolute top-20 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-20 right-1/4 w-80 h-80 bg-primary/5 rounded-full blur-3xl" />
       </div>
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto text-center">
           {/* Badge */}
-          <div className="animate-fade-in-up inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20 mb-10">
+          <div className="animate-fade-in-up inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary/10 border border-primary/20 mb-10">
             <Sparkles className="w-4 h-4 text-primary" />
             <span className="text-sm font-semibold text-foreground">The Future of Education</span>
           </div>
@@ -34,7 +23,7 @@ const Hero = () => {
             <h1 className="animate-fade-in-up animation-delay-100 text-5xl sm:text-6xl lg:text-8xl font-black font-display text-foreground leading-none tracking-tighter">
               Build Projects.
             </h1>
-            <h1 className="animate-fade-in-up animation-delay-200 text-5xl sm:text-6xl lg:text-8xl font-black font-display leading-none tracking-tighter gradient-text">
+            <h1 className="animate-fade-in-up animation-delay-200 text-5xl sm:text-6xl lg:text-8xl font-black font-display leading-none tracking-tighter text-primary">
               Skip Exams.
             </h1>
             <h1 className="animate-fade-in-up animation-delay-300 text-5xl sm:text-6xl lg:text-8xl font-black font-display text-foreground leading-none tracking-tighter">
@@ -52,7 +41,7 @@ const Hero = () => {
           <div className="animate-fade-in-up animation-delay-500">
             <Button 
               size="lg" 
-              className="h-16 px-12 text-lg font-bold rounded-3xl bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-all duration-500 hover:shadow-2xl hover:scale-105 group"
+              className="h-16 px-12 text-lg font-bold rounded-3xl bg-primary hover:bg-primary/90 transition-all duration-300 hover:shadow-xl group"
             >
               Start Building Now
               <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
@@ -66,7 +55,7 @@ const Hero = () => {
               <p className="text-sm text-muted-foreground mt-1 font-medium">Active Projects</p>
             </div>
             <div className="text-center border-x border-border">
-              <p className="text-4xl lg:text-5xl font-black font-display gradient-text">40%</p>
+              <p className="text-4xl lg:text-5xl font-black font-display text-primary">40%</p>
               <p className="text-sm text-muted-foreground mt-1 font-medium">Hired Before Grad</p>
             </div>
             <div className="text-center">

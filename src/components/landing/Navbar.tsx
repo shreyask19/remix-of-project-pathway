@@ -1,17 +1,14 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { Mountain } from "lucide-react";
+import HeuristicLogo from "@/components/HeuristicLogo";
 
 const Navbar = () => {
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-background/60 backdrop-blur-xl border-b border-border/50">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
-          <Link to="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105">
-              <Mountain className="w-5 h-5 text-primary-foreground" />
-            </div>
-            <span className="text-xl font-bold font-display text-foreground tracking-tight">Heuristic</span>
+          <Link to="/" className="group">
+            <HeuristicLogo />
           </Link>
           
           <div className="hidden md:flex items-center gap-10">
@@ -40,7 +37,7 @@ const Navbar = () => {
           
           <Button 
             size="lg" 
-            className="rounded-2xl px-8 font-semibold bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-all duration-300 hover:shadow-lg hover:scale-105"
+            className="rounded-2xl px-8 font-semibold bg-primary hover:bg-primary/90 transition-all duration-300 hover:shadow-lg"
           >
             Get Started
           </Button>
