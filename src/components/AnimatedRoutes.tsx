@@ -1,6 +1,7 @@
 import { Routes, Route, useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import Index from "@/pages/Index";
+import Auth from "@/pages/Auth";
 import RoleSelection from "@/pages/RoleSelection";
 import StudentDashboard from "@/pages/StudentDashboard";
 import StudentOnboarding from "@/pages/StudentOnboarding";
@@ -12,6 +13,7 @@ import ForStudents from "@/pages/ForStudents";
 import ForEducators from "@/pages/ForEducators";
 import ForCompanies from "@/pages/ForCompanies";
 import NotFound from "@/pages/NotFound";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 const pageVariants = {
   initial: {
@@ -54,17 +56,68 @@ const AnimatedRoutes = () => {
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
+        {/* Public routes */}
         <Route path="/" element={<PageWrapper><Index /></PageWrapper>} />
+        <Route path="/auth" element={<PageWrapper><Auth /></PageWrapper>} />
         <Route path="/get-started" element={<PageWrapper><RoleSelection /></PageWrapper>} />
         <Route path="/for-students" element={<PageWrapper><ForStudents /></PageWrapper>} />
         <Route path="/for-educators" element={<PageWrapper><ForEducators /></PageWrapper>} />
         <Route path="/for-companies" element={<PageWrapper><ForCompanies /></PageWrapper>} />
-        <Route path="/student" element={<PageWrapper><StudentDashboard /></PageWrapper>} />
-        <Route path="/student/onboarding" element={<PageWrapper><StudentOnboarding /></PageWrapper>} />
-        <Route path="/teacher" element={<PageWrapper><TeacherDashboard /></PageWrapper>} />
-        <Route path="/teacher/onboarding" element={<PageWrapper><TeacherOnboarding /></PageWrapper>} />
-        <Route path="/company" element={<PageWrapper><CompanyDashboard /></PageWrapper>} />
-        <Route path="/company/onboarding" element={<PageWrapper><CompanyOnboarding /></PageWrapper>} />
+        
+        {/* Student routes */}
+        <Route
+          path="/student"
+          element={
+            <ProtectedRoute requiredRole="student">
+              <PageWrapper><StudentDashboard /></PageWrapper>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/student/onboarding"
+          element={
+            <ProtectedRoute requiredRole="student" requireOnboarding={false}>
+              <PageWrapper><StudentOnboarding /></PageWrapper>
+            </ProtectedRoute>
+          }
+        />
+        
+        {/* Teacher routes */}
+        <Route
+          path="/teacher"
+          element={
+            <ProtectedRoute requiredRole="teacher">
+              <PageWrapper><TeacherDashboard /></PageWrapper>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/teacher/onboarding"
+          element={
+            <ProtectedRoute requiredRole="teacher" requireOnboarding={false}>
+              <PageWrapper><TeacherOnboarding /></PageWrapper>
+            </ProtectedRoute>
+          }
+        />
+        
+        {/* Company routes */}
+        <Route
+          path="/company"
+          element={
+            <ProtectedRoute requiredRole="company">
+              <PageWrapper><CompanyDashboard /></PageWrapper>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/company/onboarding"
+          element={
+            <ProtectedRoute requiredRole="company" requireOnboarding={false}>
+              <PageWrapper><CompanyOnboarding /></PageWrapper>
+            </ProtectedRoute>
+          }
+        />
+        
         <Route path="*" element={<PageWrapper><NotFound /></PageWrapper>} />
       </Routes>
     </AnimatePresence>
