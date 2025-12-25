@@ -10,6 +10,7 @@ import {
   Sparkles
 } from "lucide-react";
 import { useUser } from "@/contexts/UserContext";
+import HeuristicLogo from "@/components/HeuristicLogo";
 
 const RoleSelection = () => {
   const navigate = useNavigate();
@@ -28,9 +29,6 @@ const RoleSelection = () => {
         "Build a verified portfolio",
         "Get hired before graduation"
       ],
-      gradient: "from-blue-500/20 to-cyan-500/20",
-      borderColor: "border-blue-500/30",
-      accentColor: "text-blue-500"
     },
     {
       id: "teacher" as const,
@@ -43,9 +41,6 @@ const RoleSelection = () => {
         "View analytics and insights",
         "Manage academic policies"
       ],
-      gradient: "from-emerald-500/20 to-teal-500/20",
-      borderColor: "border-emerald-500/30",
-      accentColor: "text-emerald-500"
     },
     {
       id: "company" as const,
@@ -58,9 +53,6 @@ const RoleSelection = () => {
         "Build a hiring pipeline",
         "Hire verified, skilled talent"
       ],
-      gradient: "from-purple-500/20 to-pink-500/20",
-      borderColor: "border-purple-500/30",
-      accentColor: "text-purple-500"
     }
   ];
 
@@ -82,6 +74,9 @@ const RoleSelection = () => {
       <div className="container mx-auto px-4 py-16 max-w-6xl">
         {/* Header */}
         <div className="text-center mb-16 animate-fade-in-up">
+          <div className="flex justify-center mb-6">
+            <HeuristicLogo size="lg" />
+          </div>
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-6">
             <Sparkles className="w-4 h-4 text-primary" />
             <span className="text-sm font-medium">Welcome to Heuristic</span>
@@ -100,9 +95,9 @@ const RoleSelection = () => {
             <button
               key={role.id}
               onClick={() => setSelectedRole(role.id)}
-              className={`relative p-8 rounded-3xl text-left transition-all duration-300 animate-fade-in-up group ${
+              className={`relative p-8 rounded-2xl text-left transition-all duration-300 animate-fade-in-up group ${
                 selectedRole === role.id
-                  ? `bg-gradient-to-br ${role.gradient} border-2 ${role.borderColor} scale-[1.02] shadow-xl`
+                  ? "bg-primary/5 border-2 border-primary/30 scale-[1.02] shadow-xl"
                   : "bg-card border border-border hover:border-primary/30 hover:shadow-lg hover:-translate-y-1"
               }`}
               style={{ animationDelay: `${index * 100}ms` }}
@@ -115,7 +110,7 @@ const RoleSelection = () => {
               )}
 
               {/* Icon */}
-              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-6 transition-colors ${
+              <div className={`w-16 h-16 rounded-xl flex items-center justify-center mb-6 transition-colors ${
                 selectedRole === role.id
                   ? "bg-primary text-primary-foreground"
                   : "bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground"
@@ -124,7 +119,7 @@ const RoleSelection = () => {
               </div>
 
               {/* Content */}
-              <h3 className="text-xl font-bold text-foreground mb-2">{role.title}</h3>
+              <h3 className="text-xl font-semibold text-foreground mb-2">{role.title}</h3>
               <p className="text-sm text-muted-foreground mb-6">{role.description}</p>
 
               {/* Benefits */}
@@ -148,7 +143,7 @@ const RoleSelection = () => {
             size="lg"
             disabled={!selectedRole}
             onClick={handleContinue}
-            className="h-14 px-10 text-lg font-bold rounded-2xl gap-2 transition-all disabled:opacity-50"
+            className="h-14 px-10 text-lg font-semibold rounded-xl gap-2 transition-all disabled:opacity-50"
           >
             Continue
             <ArrowRight className="w-5 h-5" />

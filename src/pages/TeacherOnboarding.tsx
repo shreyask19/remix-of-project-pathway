@@ -10,7 +10,6 @@ import {
   ArrowLeft,
   Check,
   Plus,
-  X,
   Building2,
   AlertCircle,
   Linkedin
@@ -18,6 +17,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useUser } from "@/contexts/UserContext";
 import { toast } from "sonner";
+import HeuristicLogo from "@/components/HeuristicLogo";
 
 const TeacherOnboarding = () => {
   const navigate = useNavigate();
@@ -178,7 +178,7 @@ const TeacherOnboarding = () => {
   };
 
   const inputClass = (field: string) => 
-    `w-full px-4 py-3.5 bg-secondary/50 rounded-xl text-foreground border transition-all outline-none focus:ring-2 focus:ring-primary/20 ${
+    `w-full px-4 py-3 bg-secondary rounded-lg text-foreground border transition-all outline-none focus:ring-2 focus:ring-primary/20 ${
       errors[field] ? "border-destructive" : "border-transparent focus:border-primary/30"
     }`;
 
@@ -188,10 +188,10 @@ const TeacherOnboarding = () => {
         return (
           <div className="space-y-6 animate-fade-in">
             <div className="text-center mb-8">
-              <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 rounded-xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4">
                 <User className="w-8 h-8" />
               </div>
-              <h2 className="text-2xl font-bold text-foreground">Personal Information</h2>
+              <h2 className="text-2xl font-semibold text-foreground">Personal Information</h2>
               <p className="text-muted-foreground mt-2">Let's set up your faculty profile</p>
             </div>
 
@@ -242,10 +242,10 @@ const TeacherOnboarding = () => {
         return (
           <div className="space-y-6 animate-fade-in">
             <div className="text-center mb-8">
-              <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 rounded-xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4">
                 <Building2 className="w-8 h-8" />
               </div>
-              <h2 className="text-2xl font-bold text-foreground">Institution Details</h2>
+              <h2 className="text-2xl font-semibold text-foreground">Institution Details</h2>
               <p className="text-muted-foreground mt-2">Tell us about your institution</p>
             </div>
 
@@ -298,10 +298,10 @@ const TeacherOnboarding = () => {
         return (
           <div className="space-y-6 animate-fade-in">
             <div className="text-center mb-8">
-              <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 rounded-xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4">
                 <BookOpen className="w-8 h-8" />
               </div>
-              <h2 className="text-2xl font-bold text-foreground">Subjects & Expertise</h2>
+              <h2 className="text-2xl font-semibold text-foreground">Subjects & Expertise</h2>
               <p className="text-muted-foreground mt-2">What do you teach and specialize in?</p>
             </div>
 
@@ -310,14 +310,14 @@ const TeacherOnboarding = () => {
               <div className="flex flex-wrap gap-2 mb-3">
                 {subjectOptions.map((subject) => (
                   <button key={subject} type="button" onClick={() => toggleArrayItem("subjectsTaught", subject)}
-                    className={`px-3 py-2 rounded-xl text-sm transition-all ${formData.subjectsTaught.includes(subject) ? "bg-emerald-500 text-white shadow-md" : "bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
+                    className={`px-3 py-2 rounded-lg text-sm transition-all ${formData.subjectsTaught.includes(subject) ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
                     {subject}
                   </button>
                 ))}
               </div>
               <div className="flex gap-2">
-                <input type="text" value={customSubject} onChange={(e) => setCustomSubject(e.target.value)} placeholder="Add custom subject..." className="flex-1 px-4 py-2.5 bg-secondary/50 rounded-xl text-foreground text-sm border-0 outline-none focus:ring-2 focus:ring-primary/20" onKeyPress={(e) => e.key === "Enter" && addCustomItem("subjectsTaught", customSubject, setCustomSubject)} />
-                <Button variant="outline" size="sm" className="rounded-xl" onClick={() => addCustomItem("subjectsTaught", customSubject, setCustomSubject)}><Plus className="w-4 h-4" /></Button>
+                <input type="text" value={customSubject} onChange={(e) => setCustomSubject(e.target.value)} placeholder="Add custom subject..." className="flex-1 px-4 py-2.5 bg-secondary rounded-lg text-foreground text-sm border-0 outline-none focus:ring-2 focus:ring-primary/20" onKeyPress={(e) => e.key === "Enter" && addCustomItem("subjectsTaught", customSubject, setCustomSubject)} />
+                <Button variant="outline" size="sm" className="rounded-lg" onClick={() => addCustomItem("subjectsTaught", customSubject, setCustomSubject)}><Plus className="w-4 h-4" /></Button>
               </div>
             </div>
 
@@ -326,14 +326,14 @@ const TeacherOnboarding = () => {
               <div className="flex flex-wrap gap-2 mb-3">
                 {specializationOptions.map((spec) => (
                   <button key={spec} type="button" onClick={() => toggleArrayItem("specializations", spec)}
-                    className={`px-3 py-2 rounded-xl text-sm transition-all ${formData.specializations.includes(spec) ? "bg-emerald-500 text-white shadow-md" : "bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
+                    className={`px-3 py-2 rounded-lg text-sm transition-all ${formData.specializations.includes(spec) ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
                     {spec}
                   </button>
                 ))}
               </div>
               <div className="flex gap-2">
-                <input type="text" value={customSpecialization} onChange={(e) => setCustomSpecialization(e.target.value)} placeholder="Add custom specialization..." className="flex-1 px-4 py-2.5 bg-secondary/50 rounded-xl text-foreground text-sm border-0 outline-none focus:ring-2 focus:ring-primary/20" onKeyPress={(e) => e.key === "Enter" && addCustomItem("specializations", customSpecialization, setCustomSpecialization)} />
-                <Button variant="outline" size="sm" className="rounded-xl" onClick={() => addCustomItem("specializations", customSpecialization, setCustomSpecialization)}><Plus className="w-4 h-4" /></Button>
+                <input type="text" value={customSpecialization} onChange={(e) => setCustomSpecialization(e.target.value)} placeholder="Add custom specialization..." className="flex-1 px-4 py-2.5 bg-secondary rounded-lg text-foreground text-sm border-0 outline-none focus:ring-2 focus:ring-primary/20" onKeyPress={(e) => e.key === "Enter" && addCustomItem("specializations", customSpecialization, setCustomSpecialization)} />
+                <Button variant="outline" size="sm" className="rounded-lg" onClick={() => addCustomItem("specializations", customSpecialization, setCustomSpecialization)}><Plus className="w-4 h-4" /></Button>
               </div>
             </div>
           </div>
@@ -343,10 +343,10 @@ const TeacherOnboarding = () => {
         return (
           <div className="space-y-6 animate-fade-in">
             <div className="text-center mb-8">
-              <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 rounded-xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4">
                 <Settings className="w-8 h-8" />
               </div>
-              <h2 className="text-2xl font-bold text-foreground">Preferences</h2>
+              <h2 className="text-2xl font-semibold text-foreground">Preferences</h2>
               <p className="text-muted-foreground mt-2">Customize your Heuristic experience</p>
             </div>
 
@@ -382,16 +382,16 @@ const TeacherOnboarding = () => {
               <div className="flex flex-wrap gap-2">
                 {["Email Notifications", "Weekly Reports", "Student Alerts", "Deadline Reminders", "Grade Updates"].map((pref) => (
                   <button key={pref} type="button" onClick={() => toggleArrayItem("communicationPreference", pref)}
-                    className={`px-3 py-2 rounded-xl text-sm transition-all ${formData.communicationPreference.includes(pref) ? "bg-emerald-500 text-white shadow-md" : "bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
+                    className={`px-3 py-2 rounded-lg text-sm transition-all ${formData.communicationPreference.includes(pref) ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
                     {pref}
                   </button>
                 ))}
               </div>
             </div>
 
-            <div className="p-4 rounded-2xl bg-success/10 border border-success/20">
+            <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
               <div className="flex items-start gap-3">
-                <Check className="w-5 h-5 text-success mt-0.5" />
+                <Check className="w-5 h-5 text-primary mt-0.5" />
                 <div>
                   <h4 className="font-medium text-foreground">You're all set!</h4>
                   <p className="text-sm text-muted-foreground">Your faculty dashboard will help you monitor student progress, approve assessments, and manage academic controls.</p>
@@ -409,18 +409,15 @@ const TeacherOnboarding = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <div className="absolute inset-0 -z-10 overflow-hidden">
-        <div className="absolute top-20 left-1/4 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-20 right-1/4 w-80 h-80 bg-emerald-500/5 rounded-full blur-3xl" />
+        <div className="absolute top-20 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-20 right-1/4 w-80 h-80 bg-primary/5 rounded-full blur-3xl" />
       </div>
 
       <div className="border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4 max-w-3xl">
           <div className="flex items-center justify-between mb-3">
-            <a href="/" className="flex items-center gap-2 text-foreground font-bold">
-              <div className="w-8 h-8 rounded-xl bg-emerald-500 flex items-center justify-center">
-                <BookOpen className="w-4 h-4 text-white" />
-              </div>
-              <span className="font-display">Heuristic</span>
+            <a href="/">
+              <HeuristicLogo size="sm" />
             </a>
             <span className="text-sm text-muted-foreground">Step {currentStep} of {totalSteps}</span>
           </div>
@@ -433,15 +430,15 @@ const TeacherOnboarding = () => {
       <div className="border-t border-border bg-background/80 backdrop-blur-sm sticky bottom-0">
         <div className="container mx-auto px-4 py-4 max-w-2xl">
           <div className="flex items-center justify-between">
-            <Button variant="ghost" onClick={handleBack} disabled={currentStep === 1} className="gap-2 rounded-xl">
+            <Button variant="ghost" onClick={handleBack} disabled={currentStep === 1} className="gap-2 rounded-lg">
               <ArrowLeft className="w-4 h-4" />Back
             </Button>
             <div className="flex gap-2">
               {[...Array(totalSteps)].map((_, i) => (
-                <div key={i} className={`w-2 h-2 rounded-full transition-all ${i + 1 === currentStep ? "w-6 bg-emerald-500" : i + 1 < currentStep ? "bg-emerald-500" : "bg-border"}`} />
+                <div key={i} className={`w-2 h-2 rounded-full transition-all ${i + 1 === currentStep ? "w-6 bg-primary" : i + 1 < currentStep ? "bg-primary" : "bg-border"}`} />
               ))}
             </div>
-            <Button onClick={handleNext} className="gap-2 rounded-xl bg-emerald-500 hover:bg-emerald-600">
+            <Button onClick={handleNext} className="gap-2 rounded-lg">
               {currentStep === totalSteps ? "Complete" : "Continue"}
               {currentStep === totalSteps ? <Check className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
             </Button>
