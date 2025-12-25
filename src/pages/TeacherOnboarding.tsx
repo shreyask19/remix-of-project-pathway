@@ -11,42 +11,41 @@ import {
   Check,
   Plus,
   X,
-  Users,
-  Award,
-  Building2
+  Building2,
+  AlertCircle,
+  Linkedin
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useUser } from "@/contexts/UserContext";
+import { toast } from "sonner";
 
 const TeacherOnboarding = () => {
   const navigate = useNavigate();
+  const { updateUser, setIsOnboarded } = useUser();
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 4;
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const [formData, setFormData] = useState({
-    // Step 1: Personal Info
     firstName: "",
     lastName: "",
+    age: "",
     email: "",
     phone: "",
     designation: "",
-    
-    // Step 2: Institution Info
     institutionName: "",
     institutionType: "",
     department: "",
+    batch: "",
+    graduationYear: "",
     employeeId: "",
     yearsOfExperience: "",
-    
-    // Step 3: Academic Details
     subjectsTaught: [] as string[],
     specializations: [] as string[],
-    researchAreas: [] as string[],
-    
-    // Step 4: Preferences
+    linkedinUrl: "",
     classSize: "",
     gradingPreference: "",
     communicationPreference: [] as string[],
-    additionalNotes: "",
   });
 
   const [customSubject, setCustomSubject] = useState("");
@@ -89,8 +88,6 @@ const TeacherOnboarding = () => {
     "Artificial Intelligence",
     "Mathematics",
     "Physics",
-    "Chemistry",
-    "Management Studies",
     "Other"
   ];
 
@@ -104,13 +101,7 @@ const TeacherOnboarding = () => {
     "Artificial Intelligence",
     "Cloud Computing",
     "Cyber Security",
-    "Software Engineering",
-    "Digital Electronics",
-    "Signal Processing",
-    "Embedded Systems",
-    "Compiler Design",
-    "Theory of Computation",
-    "Computer Architecture"
+    "Software Engineering"
   ];
 
   const specializationOptions = [
@@ -121,25 +112,16 @@ const TeacherOnboarding = () => {
     "IoT & Embedded Systems",
     "Web Technologies",
     "Mobile Development",
-    "Blockchain",
     "Computer Vision",
-    "Natural Language Processing",
-    "Robotics",
-    "Quantum Computing"
+    "Natural Language Processing"
   ];
 
   const toggleArrayItem = (field: keyof typeof formData, item: string) => {
     const currentArray = formData[field] as string[];
     if (currentArray.includes(item)) {
-      setFormData({
-        ...formData,
-        [field]: currentArray.filter(i => i !== item)
-      });
+      setFormData({ ...formData, [field]: currentArray.filter(i => i !== item) });
     } else {
-      setFormData({
-        ...formData,
-        [field]: [...currentArray, item]
-      });
+      setFormData({ ...formData, [field]: [...currentArray, item] });
     }
   };
 
@@ -147,109 +129,120 @@ const TeacherOnboarding = () => {
     if (value.trim()) {
       const currentArray = formData[field] as string[];
       if (!currentArray.includes(value.trim())) {
-        setFormData({
-          ...formData,
-          [field]: [...currentArray, value.trim()]
-        });
+        setFormData({ ...formData, [field]: [...currentArray, value.trim()] });
       }
       setter("");
     }
   };
 
+  const validateStep = (step: number): boolean => {
+    const newErrors: Record<string, string> = {};
+    
+    if (step === 1) {
+      if (!formData.firstName.trim()) newErrors.firstName = "First name is required";
+      if (!formData.lastName.trim()) newErrors.lastName = "Last name is required";
+      if (!formData.age.trim()) newErrors.age = "Age is required";
+      if (!formData.phone.trim()) newErrors.phone = "Phone number is required";
+      if (!formData.email.trim()) newErrors.email = "Email is required";
+      if (!formData.designation) newErrors.designation = "Designation is required";
+    }
+    
+    if (step === 2) {
+      if (!formData.institutionName.trim()) newErrors.institutionName = "Institution name is required";
+      if (!formData.institutionType) newErrors.institutionType = "Institution type is required";
+      if (!formData.department) newErrors.department = "Department is required";
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleNext = () => {
+    if (!validateStep(currentStep)) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+    
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
     } else {
+      updateUser({ ...formData, role: "teacher" });
+      setIsOnboarded(true);
+      toast.success(`Welcome, ${formData.firstName}! Your dashboard is ready.`);
       navigate("/teacher");
     }
   };
 
   const handleBack = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-    }
+    if (currentStep > 1) setCurrentStep(currentStep - 1);
   };
+
+  const inputClass = (field: string) => 
+    `w-full px-4 py-3.5 bg-secondary/50 rounded-xl text-foreground border transition-all outline-none focus:ring-2 focus:ring-primary/20 ${
+      errors[field] ? "border-destructive" : "border-transparent focus:border-primary/30"
+    }`;
 
   const renderStep = () => {
     switch (currentStep) {
       case 1:
         return (
-          <div className="space-y-6">
+          <div className="space-y-6 animate-fade-in">
             <div className="text-center mb-8">
-              <div className="w-16 h-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center mx-auto mb-4">
                 <User className="w-8 h-8" />
               </div>
-              <h2 className="text-2xl font-bold text-foreground">Welcome, Educator!</h2>
-              <p className="text-muted-foreground mt-2">Let's set up your profile to get started</p>
+              <h2 className="text-2xl font-bold text-foreground">Personal Information</h2>
+              <p className="text-muted-foreground mt-2">Let's set up your faculty profile</p>
             </div>
 
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">First Name *</label>
-                <input
-                  type="text"
-                  value={formData.firstName}
-                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                  placeholder="Dr. John"
-                  className="w-full px-4 py-3 bg-secondary rounded-2xl text-foreground border-0 outline-none focus:ring-2 focus:ring-primary/20"
-                />
+                <label className="block text-sm font-medium text-foreground mb-2">First Name <span className="text-destructive">*</span></label>
+                <input type="text" value={formData.firstName} onChange={(e) => setFormData({ ...formData, firstName: e.target.value })} placeholder="Dr. John" className={inputClass("firstName")} />
+                {errors.firstName && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.firstName}</p>}
               </div>
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">Last Name *</label>
-                <input
-                  type="text"
-                  value={formData.lastName}
-                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                  placeholder="Smith"
-                  className="w-full px-4 py-3 bg-secondary rounded-2xl text-foreground border-0 outline-none focus:ring-2 focus:ring-primary/20"
-                />
+                <label className="block text-sm font-medium text-foreground mb-2">Last Name <span className="text-destructive">*</span></label>
+                <input type="text" value={formData.lastName} onChange={(e) => setFormData({ ...formData, lastName: e.target.value })} placeholder="Smith" className={inputClass("lastName")} />
+                {errors.lastName && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.lastName}</p>}
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">Age <span className="text-destructive">*</span></label>
+                <input type="number" value={formData.age} onChange={(e) => setFormData({ ...formData, age: e.target.value })} placeholder="35" className={inputClass("age")} />
+                {errors.age && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.age}</p>}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">Phone Number <span className="text-destructive">*</span></label>
+                <input type="tel" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} placeholder="+91 98765 43210" className={inputClass("phone")} />
+                {errors.phone && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.phone}</p>}
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2">Designation *</label>
-              <select
-                value={formData.designation}
-                onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
-                className="w-full px-4 py-3 bg-secondary rounded-2xl text-foreground border-0 outline-none focus:ring-2 focus:ring-primary/20"
-              >
-                <option value="">Select your designation</option>
-                {designations.map((d) => (
-                  <option key={d} value={d}>{d}</option>
-                ))}
-              </select>
+              <label className="block text-sm font-medium text-foreground mb-2">Email Address <span className="text-destructive">*</span></label>
+              <input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} placeholder="john.smith@university.edu" className={inputClass("email")} />
+              {errors.email && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.email}</p>}
             </div>
 
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">Email Address *</label>
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="john.smith@university.edu"
-                  className="w-full px-4 py-3 bg-secondary rounded-2xl text-foreground border-0 outline-none focus:ring-2 focus:ring-primary/20"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">Phone Number</label>
-                <input
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  placeholder="+91 98765 43210"
-                  className="w-full px-4 py-3 bg-secondary rounded-2xl text-foreground border-0 outline-none focus:ring-2 focus:ring-primary/20"
-                />
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">Designation <span className="text-destructive">*</span></label>
+              <select value={formData.designation} onChange={(e) => setFormData({ ...formData, designation: e.target.value })} className={inputClass("designation")}>
+                <option value="">Select your designation</option>
+                {designations.map((d) => (<option key={d} value={d}>{d}</option>))}
+              </select>
+              {errors.designation && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.designation}</p>}
             </div>
           </div>
         );
 
       case 2:
         return (
-          <div className="space-y-6">
+          <div className="space-y-6 animate-fade-in">
             <div className="text-center mb-8">
-              <div className="w-16 h-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center mx-auto mb-4">
                 <Building2 className="w-8 h-8" />
               </div>
               <h2 className="text-2xl font-bold text-foreground">Institution Details</h2>
@@ -257,63 +250,38 @@ const TeacherOnboarding = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2">Institution Name *</label>
-              <input
-                type="text"
-                value={formData.institutionName}
-                onChange={(e) => setFormData({ ...formData, institutionName: e.target.value })}
-                placeholder="e.g., Indian Institute of Technology Delhi"
-                className="w-full px-4 py-3 bg-secondary rounded-2xl text-foreground border-0 outline-none focus:ring-2 focus:ring-primary/20"
-              />
+              <label className="block text-sm font-medium text-foreground mb-2">Institution Name <span className="text-destructive">*</span></label>
+              <input type="text" value={formData.institutionName} onChange={(e) => setFormData({ ...formData, institutionName: e.target.value })} placeholder="e.g., IIT Delhi" className={inputClass("institutionName")} />
+              {errors.institutionName && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.institutionName}</p>}
             </div>
 
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">Institution Type *</label>
-                <select
-                  value={formData.institutionType}
-                  onChange={(e) => setFormData({ ...formData, institutionType: e.target.value })}
-                  className="w-full px-4 py-3 bg-secondary rounded-2xl text-foreground border-0 outline-none focus:ring-2 focus:ring-primary/20"
-                >
+                <label className="block text-sm font-medium text-foreground mb-2">Institution Type <span className="text-destructive">*</span></label>
+                <select value={formData.institutionType} onChange={(e) => setFormData({ ...formData, institutionType: e.target.value })} className={inputClass("institutionType")}>
                   <option value="">Select type</option>
-                  {institutionTypes.map((type) => (
-                    <option key={type} value={type}>{type}</option>
-                  ))}
+                  {institutionTypes.map((type) => (<option key={type} value={type}>{type}</option>))}
                 </select>
+                {errors.institutionType && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.institutionType}</p>}
               </div>
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">Department *</label>
-                <select
-                  value={formData.department}
-                  onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                  className="w-full px-4 py-3 bg-secondary rounded-2xl text-foreground border-0 outline-none focus:ring-2 focus:ring-primary/20"
-                >
+                <label className="block text-sm font-medium text-foreground mb-2">Department <span className="text-destructive">*</span></label>
+                <select value={formData.department} onChange={(e) => setFormData({ ...formData, department: e.target.value })} className={inputClass("department")}>
                   <option value="">Select department</option>
-                  {departments.map((dept) => (
-                    <option key={dept} value={dept}>{dept}</option>
-                  ))}
+                  {departments.map((dept) => (<option key={dept} value={dept}>{dept}</option>))}
                 </select>
+                {errors.department && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.department}</p>}
               </div>
             </div>
 
             <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">Employee ID</label>
-                <input
-                  type="text"
-                  value={formData.employeeId}
-                  onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
-                  placeholder="EMP12345"
-                  className="w-full px-4 py-3 bg-secondary rounded-2xl text-foreground border-0 outline-none focus:ring-2 focus:ring-primary/20"
-                />
+                <input type="text" value={formData.employeeId} onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })} placeholder="EMP12345" className={inputClass("employeeId")} />
               </div>
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">Years of Experience</label>
-                <select
-                  value={formData.yearsOfExperience}
-                  onChange={(e) => setFormData({ ...formData, yearsOfExperience: e.target.value })}
-                  className="w-full px-4 py-3 bg-secondary rounded-2xl text-foreground border-0 outline-none focus:ring-2 focus:ring-primary/20"
-                >
+                <select value={formData.yearsOfExperience} onChange={(e) => setFormData({ ...formData, yearsOfExperience: e.target.value })} className={inputClass("yearsOfExperience")}>
                   <option value="">Select</option>
                   <option value="0-2">0-2 years</option>
                   <option value="3-5">3-5 years</option>
@@ -328,88 +296,44 @@ const TeacherOnboarding = () => {
 
       case 3:
         return (
-          <div className="space-y-6">
+          <div className="space-y-6 animate-fade-in">
             <div className="text-center mb-8">
-              <div className="w-16 h-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center mx-auto mb-4">
                 <BookOpen className="w-8 h-8" />
               </div>
               <h2 className="text-2xl font-bold text-foreground">Subjects & Expertise</h2>
               <p className="text-muted-foreground mt-2">What do you teach and specialize in?</p>
             </div>
 
-            {/* Subjects Taught */}
             <div>
               <label className="block text-sm font-medium text-foreground mb-3">Subjects You Teach</label>
               <div className="flex flex-wrap gap-2 mb-3">
                 {subjectOptions.map((subject) => (
-                  <button
-                    key={subject}
-                    onClick={() => toggleArrayItem("subjectsTaught", subject)}
-                    className={`px-3 py-1.5 rounded-xl text-sm transition-colors ${
-                      formData.subjectsTaught.includes(subject)
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-secondary text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
+                  <button key={subject} type="button" onClick={() => toggleArrayItem("subjectsTaught", subject)}
+                    className={`px-3 py-2 rounded-xl text-sm transition-all ${formData.subjectsTaught.includes(subject) ? "bg-emerald-500 text-white shadow-md" : "bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
                     {subject}
                   </button>
                 ))}
               </div>
               <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={customSubject}
-                  onChange={(e) => setCustomSubject(e.target.value)}
-                  placeholder="Add custom subject..."
-                  className="flex-1 px-4 py-2 bg-secondary rounded-2xl text-foreground text-sm border-0 outline-none focus:ring-2 focus:ring-primary/20"
-                  onKeyPress={(e) => e.key === "Enter" && addCustomItem("subjectsTaught", customSubject, setCustomSubject)}
-                />
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="rounded-xl"
-                  onClick={() => addCustomItem("subjectsTaught", customSubject, setCustomSubject)}
-                >
-                  <Plus className="w-4 h-4" />
-                </Button>
+                <input type="text" value={customSubject} onChange={(e) => setCustomSubject(e.target.value)} placeholder="Add custom subject..." className="flex-1 px-4 py-2.5 bg-secondary/50 rounded-xl text-foreground text-sm border-0 outline-none focus:ring-2 focus:ring-primary/20" onKeyPress={(e) => e.key === "Enter" && addCustomItem("subjectsTaught", customSubject, setCustomSubject)} />
+                <Button variant="outline" size="sm" className="rounded-xl" onClick={() => addCustomItem("subjectsTaught", customSubject, setCustomSubject)}><Plus className="w-4 h-4" /></Button>
               </div>
             </div>
 
-            {/* Specializations */}
             <div>
               <label className="block text-sm font-medium text-foreground mb-3">Areas of Specialization</label>
               <div className="flex flex-wrap gap-2 mb-3">
                 {specializationOptions.map((spec) => (
-                  <button
-                    key={spec}
-                    onClick={() => toggleArrayItem("specializations", spec)}
-                    className={`px-3 py-1.5 rounded-xl text-sm transition-colors ${
-                      formData.specializations.includes(spec)
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-secondary text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
+                  <button key={spec} type="button" onClick={() => toggleArrayItem("specializations", spec)}
+                    className={`px-3 py-2 rounded-xl text-sm transition-all ${formData.specializations.includes(spec) ? "bg-emerald-500 text-white shadow-md" : "bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
                     {spec}
                   </button>
                 ))}
               </div>
               <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={customSpecialization}
-                  onChange={(e) => setCustomSpecialization(e.target.value)}
-                  placeholder="Add custom specialization..."
-                  className="flex-1 px-4 py-2 bg-secondary rounded-2xl text-foreground text-sm border-0 outline-none focus:ring-2 focus:ring-primary/20"
-                  onKeyPress={(e) => e.key === "Enter" && addCustomItem("specializations", customSpecialization, setCustomSpecialization)}
-                />
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="rounded-xl"
-                  onClick={() => addCustomItem("specializations", customSpecialization, setCustomSpecialization)}
-                >
-                  <Plus className="w-4 h-4" />
-                </Button>
+                <input type="text" value={customSpecialization} onChange={(e) => setCustomSpecialization(e.target.value)} placeholder="Add custom specialization..." className="flex-1 px-4 py-2.5 bg-secondary/50 rounded-xl text-foreground text-sm border-0 outline-none focus:ring-2 focus:ring-primary/20" onKeyPress={(e) => e.key === "Enter" && addCustomItem("specializations", customSpecialization, setCustomSpecialization)} />
+                <Button variant="outline" size="sm" className="rounded-xl" onClick={() => addCustomItem("specializations", customSpecialization, setCustomSpecialization)}><Plus className="w-4 h-4" /></Button>
               </div>
             </div>
           </div>
@@ -417,9 +341,9 @@ const TeacherOnboarding = () => {
 
       case 4:
         return (
-          <div className="space-y-6">
+          <div className="space-y-6 animate-fade-in">
             <div className="text-center mb-8">
-              <div className="w-16 h-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center mx-auto mb-4">
                 <Settings className="w-8 h-8" />
               </div>
               <h2 className="text-2xl font-bold text-foreground">Preferences</h2>
@@ -429,11 +353,7 @@ const TeacherOnboarding = () => {
             <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">Average Class Size</label>
-                <select
-                  value={formData.classSize}
-                  onChange={(e) => setFormData({ ...formData, classSize: e.target.value })}
-                  className="w-full px-4 py-3 bg-secondary rounded-2xl text-foreground border-0 outline-none focus:ring-2 focus:ring-primary/20"
-                >
+                <select value={formData.classSize} onChange={(e) => setFormData({ ...formData, classSize: e.target.value })} className={inputClass("classSize")}>
                   <option value="">Select</option>
                   <option value="1-30">1-30 students</option>
                   <option value="31-60">31-60 students</option>
@@ -443,57 +363,40 @@ const TeacherOnboarding = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">Grading Preference</label>
-                <select
-                  value={formData.gradingPreference}
-                  onChange={(e) => setFormData({ ...formData, gradingPreference: e.target.value })}
-                  className="w-full px-4 py-3 bg-secondary rounded-2xl text-foreground border-0 outline-none focus:ring-2 focus:ring-primary/20"
-                >
+                <select value={formData.gradingPreference} onChange={(e) => setFormData({ ...formData, gradingPreference: e.target.value })} className={inputClass("gradingPreference")}>
                   <option value="">Select</option>
                   <option value="auto">Auto-approve company grades</option>
                   <option value="review">Review each grade manually</option>
-                  <option value="threshold">Auto-approve above threshold</option>
+                  <option value="hybrid">Hybrid (auto for high scores)</option>
                 </select>
               </div>
             </div>
 
             <div>
+              <label className="block text-sm font-medium text-foreground mb-2"><Linkedin className="w-4 h-4 inline mr-2" />LinkedIn Profile</label>
+              <input type="url" value={formData.linkedinUrl} onChange={(e) => setFormData({ ...formData, linkedinUrl: e.target.value })} placeholder="https://linkedin.com/in/yourprofile" className={inputClass("linkedinUrl")} />
+            </div>
+
+            <div>
               <label className="block text-sm font-medium text-foreground mb-3">Communication Preferences</label>
-              <div className="grid grid-cols-2 gap-3">
-                {["Email notifications", "SMS alerts", "Weekly digest", "Real-time updates"].map((pref) => (
-                  <button
-                    key={pref}
-                    onClick={() => toggleArrayItem("communicationPreference", pref)}
-                    className={`p-3 rounded-2xl border-2 text-left transition-all ${
-                      formData.communicationPreference.includes(pref)
-                        ? "border-primary bg-primary/10"
-                        : "border-border hover:border-primary/50"
-                    }`}
-                  >
-                    <p className="text-sm font-medium text-foreground">{pref}</p>
+              <div className="flex flex-wrap gap-2">
+                {["Email Notifications", "Weekly Reports", "Student Alerts", "Deadline Reminders", "Grade Updates"].map((pref) => (
+                  <button key={pref} type="button" onClick={() => toggleArrayItem("communicationPreference", pref)}
+                    className={`px-3 py-2 rounded-xl text-sm transition-all ${formData.communicationPreference.includes(pref) ? "bg-emerald-500 text-white shadow-md" : "bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
+                    {pref}
                   </button>
                 ))}
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">Additional Notes (Optional)</label>
-              <textarea
-                rows={3}
-                value={formData.additionalNotes}
-                onChange={(e) => setFormData({ ...formData, additionalNotes: e.target.value })}
-                placeholder="Any specific requirements or preferences..."
-                className="w-full px-4 py-3 bg-secondary rounded-2xl text-foreground border-0 outline-none focus:ring-2 focus:ring-primary/20 resize-none"
-              />
-            </div>
-
             <div className="p-4 rounded-2xl bg-success/10 border border-success/20">
-              <div className="flex items-center gap-2 mb-2">
-                <Check className="w-5 h-5 text-success" />
-                <span className="font-medium text-foreground">Ready to Transform Assessment!</span>
+              <div className="flex items-start gap-3">
+                <Check className="w-5 h-5 text-success mt-0.5" />
+                <div>
+                  <h4 className="font-medium text-foreground">You're all set!</h4>
+                  <p className="text-sm text-muted-foreground">Your faculty dashboard will help you monitor student progress, approve assessments, and manage academic controls.</p>
+                </div>
               </div>
-              <p className="text-sm text-muted-foreground">
-                You'll be able to track student progress, approve company grades, and manage exam exemptions all in one place.
-              </p>
             </div>
           </div>
         );
@@ -503,91 +406,47 @@ const TeacherOnboarding = () => {
     }
   };
 
-  const stepLabels = [
-    { step: 1, label: "Personal", icon: <User className="w-4 h-4" /> },
-    { step: 2, label: "Institution", icon: <Building2 className="w-4 h-4" /> },
-    { step: 3, label: "Expertise", icon: <BookOpen className="w-4 h-4" /> },
-    { step: 4, label: "Preferences", icon: <Settings className="w-4 h-4" /> },
-  ];
-
   return (
-    <div className="min-h-screen bg-secondary/30 flex items-center justify-center p-4">
-      <div className="w-full max-w-3xl">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <a href="/" className="inline-flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center">
-              <GraduationCap className="w-6 h-6 text-primary-foreground" />
-            </div>
-            <span className="text-2xl font-bold font-display text-foreground">Heuristic</span>
-          </a>
-          <p className="text-muted-foreground mt-2">Educator Onboarding</p>
-        </div>
+    <div className="min-h-screen bg-background flex flex-col">
+      <div className="absolute inset-0 -z-10 overflow-hidden">
+        <div className="absolute top-20 left-1/4 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-20 right-1/4 w-80 h-80 bg-emerald-500/5 rounded-full blur-3xl" />
+      </div>
 
-        {/* Progress Steps */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            {stepLabels.map((item, idx) => (
-              <div key={item.step} className="flex items-center">
-                <div className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-colors ${
-                  currentStep === item.step 
-                    ? "bg-primary text-primary-foreground" 
-                    : currentStep > item.step
-                    ? "bg-success text-success-foreground"
-                    : "bg-secondary text-muted-foreground"
-                }`}>
-                  {currentStep > item.step ? <Check className="w-4 h-4" /> : item.icon}
-                  <span className="text-sm font-medium hidden md:inline">{item.label}</span>
-                </div>
-                {idx < stepLabels.length - 1 && (
-                  <div className={`w-8 md:w-20 h-0.5 mx-2 ${
-                    currentStep > item.step ? "bg-success" : "bg-border"
-                  }`} />
-                )}
+      <div className="border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-10">
+        <div className="container mx-auto px-4 py-4 max-w-3xl">
+          <div className="flex items-center justify-between mb-3">
+            <a href="/" className="flex items-center gap-2 text-foreground font-bold">
+              <div className="w-8 h-8 rounded-xl bg-emerald-500 flex items-center justify-center">
+                <BookOpen className="w-4 h-4 text-white" />
               </div>
-            ))}
+              <span className="font-display">Heuristic</span>
+            </a>
+            <span className="text-sm text-muted-foreground">Step {currentStep} of {totalSteps}</span>
           </div>
-          <Progress value={(currentStep / totalSteps) * 100} className="h-2" />
+          <Progress value={(currentStep / totalSteps) * 100} className="h-1.5" />
         </div>
+      </div>
 
-        {/* Form Card */}
-        <div className="bg-card rounded-3xl border border-border p-8 shadow-lg">
-          {renderStep()}
+      <div className="flex-1 container mx-auto px-4 py-8 max-w-2xl">{renderStep()}</div>
 
-          {/* Navigation */}
-          <div className="flex items-center justify-between mt-8 pt-6 border-t border-border">
-            <Button
-              variant="outline"
-              onClick={handleBack}
-              disabled={currentStep === 1}
-              className="rounded-2xl gap-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back
+      <div className="border-t border-border bg-background/80 backdrop-blur-sm sticky bottom-0">
+        <div className="container mx-auto px-4 py-4 max-w-2xl">
+          <div className="flex items-center justify-between">
+            <Button variant="ghost" onClick={handleBack} disabled={currentStep === 1} className="gap-2 rounded-xl">
+              <ArrowLeft className="w-4 h-4" />Back
             </Button>
-
-            <Button onClick={handleNext} className="rounded-2xl gap-2">
-              {currentStep === totalSteps ? (
-                <>
-                  Complete Setup
-                  <Check className="w-4 h-4" />
-                </>
-              ) : (
-                <>
-                  Continue
-                  <ArrowRight className="w-4 h-4" />
-                </>
-              )}
+            <div className="flex gap-2">
+              {[...Array(totalSteps)].map((_, i) => (
+                <div key={i} className={`w-2 h-2 rounded-full transition-all ${i + 1 === currentStep ? "w-6 bg-emerald-500" : i + 1 < currentStep ? "bg-emerald-500" : "bg-border"}`} />
+              ))}
+            </div>
+            <Button onClick={handleNext} className="gap-2 rounded-xl bg-emerald-500 hover:bg-emerald-600">
+              {currentStep === totalSteps ? "Complete" : "Continue"}
+              {currentStep === totalSteps ? <Check className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
             </Button>
           </div>
         </div>
-
-        <p className="text-center mt-4 text-sm text-muted-foreground">
-          Already have an account?{" "}
-          <a href="/teacher" className="text-primary font-medium hover:underline">
-            Skip to Dashboard
-          </a>
-        </p>
       </div>
     </div>
   );
