@@ -1,69 +1,99 @@
-import { Mountain, ArrowRight } from "lucide-react";
+import { Mountain, ArrowRight, Twitter, Linkedin, Github } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 const Footer = () => {
+  const currentYear = new Date().getFullYear();
+
   return (
-    <footer className="py-16 bg-foreground text-background">
+    <footer className="py-20 bg-muted/50 border-t border-border">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-12">
+        <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-12 lg:gap-8 mb-16">
+          {/* Brand */}
           <div className="lg:col-span-2">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center shadow-lg">
                 <Mountain className="w-5 h-5 text-primary-foreground" />
               </div>
-              <span className="text-lg font-semibold">Heuristic</span>
+              <span className="text-xl font-bold font-display text-foreground tracking-tight">Heuristic</span>
             </div>
-            <p className="text-sm text-background/60 mb-4">
-              Bridging classrooms and real-world projects – the future of education starts here.
+            <p className="text-muted-foreground mb-6 max-w-sm leading-relaxed">
+              Building the future where portfolios replace GPAs and real projects replace exams.
             </p>
-          </div>
-
-          <div>
-            <h4 className="font-semibold mb-4">Platform</h4>
-            <ul className="space-y-3 text-sm text-background/60">
-              <li><a href="/student" className="hover:text-background transition-colors">For Students</a></li>
-              <li><a href="/teacher" className="hover:text-background transition-colors">For Educators</a></li>
-              <li><a href="/company" className="hover:text-background transition-colors">For Companies</a></li>
-              <li><a href="#" className="hover:text-background transition-colors">Pricing</a></li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="font-semibold mb-4">Company</h4>
-            <ul className="space-y-3 text-sm text-background/60">
-              <li><a href="#" className="hover:text-background transition-colors">About Us</a></li>
-              <li><a href="#" className="hover:text-background transition-colors">Careers</a></li>
-              <li><a href="#" className="hover:text-background transition-colors">Blog</a></li>
-              <li><a href="#" className="hover:text-background transition-colors">Contact</a></li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="font-semibold mb-4">Stay Updated</h4>
-            <p className="text-sm text-background/60 mb-4">
-              Get the latest on education trends.
-            </p>
-            <div className="flex gap-2">
+            
+            {/* Newsletter */}
+            <div className="flex gap-2 max-w-sm">
               <Input
                 type="email"
                 placeholder="Your email"
-                className="bg-background/10 border-background/20 text-background placeholder:text-background/40"
+                className="rounded-2xl bg-background border-border/50 focus:border-primary"
               />
-              <Button size="icon" className="shrink-0">
+              <Button size="icon" className="shrink-0 rounded-2xl bg-gradient-to-r from-primary to-accent hover:opacity-90">
                 <ArrowRight className="w-4 h-4" />
               </Button>
             </div>
           </div>
+
+          {/* Platform */}
+          <div>
+            <h4 className="font-bold font-display text-foreground mb-6">Platform</h4>
+            <ul className="space-y-4">
+              {["For Students", "For Educators", "For Companies", "Pricing"].map((item) => (
+                <li key={item}>
+                  <a href="#" className="text-muted-foreground hover:text-foreground transition-colors duration-300">
+                    {item}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Company */}
+          <div>
+            <h4 className="font-bold font-display text-foreground mb-6">Company</h4>
+            <ul className="space-y-4">
+              {["About Us", "Careers", "Blog", "Contact"].map((item) => (
+                <li key={item}>
+                  <a href="#" className="text-muted-foreground hover:text-foreground transition-colors duration-300">
+                    {item}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Legal */}
+          <div>
+            <h4 className="font-bold font-display text-foreground mb-6">Legal</h4>
+            <ul className="space-y-4">
+              {["Privacy Policy", "Terms of Service", "Cookie Policy", "Security"].map((item) => (
+                <li key={item}>
+                  <a href="#" className="text-muted-foreground hover:text-foreground transition-colors duration-300">
+                    {item}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
 
-        <div className="mt-12 pt-8 border-t border-background/10 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-sm text-background/40">
-            © 2024 Heuristic Inc. All rights reserved.
+        {/* Bottom Bar */}
+        <div className="pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center gap-4">
+          <p className="text-sm text-muted-foreground">
+            © {currentYear} Heuristic Inc. All rights reserved.
           </p>
-          <div className="flex gap-6 text-sm text-background/40">
-            <a href="#" className="hover:text-background transition-colors">Privacy Policy</a>
-            <a href="#" className="hover:text-background transition-colors">Terms of Service</a>
+          
+          {/* Social Links */}
+          <div className="flex items-center gap-4">
+            <a href="#" className="w-10 h-10 rounded-2xl bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-primary/10 transition-all duration-300">
+              <Twitter className="w-4 h-4" />
+            </a>
+            <a href="#" className="w-10 h-10 rounded-2xl bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-primary/10 transition-all duration-300">
+              <Linkedin className="w-4 h-4" />
+            </a>
+            <a href="#" className="w-10 h-10 rounded-2xl bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-primary/10 transition-all duration-300">
+              <Github className="w-4 h-4" />
+            </a>
           </div>
         </div>
       </div>

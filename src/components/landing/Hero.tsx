@@ -1,61 +1,78 @@
 import { Button } from "@/components/ui/button";
-import dashboardMockup from "@/assets/dashboard-mockup.png";
+import { ArrowRight, Sparkles } from "lucide-react";
+import heroShapes from "@/assets/hero-shapes.png";
 
 const Hero = () => {
   return (
-    <section className="pt-32 pb-16 lg:pt-40 lg:pb-24">
+    <section className="relative pt-32 pb-20 lg:pt-44 lg:pb-32 overflow-hidden">
+      {/* Background Elements */}
+      <div className="absolute inset-0 -z-10">
+        <div className="absolute top-20 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse-subtle" />
+        <div className="absolute bottom-20 right-1/4 w-80 h-80 bg-accent/10 rounded-full blur-3xl animate-pulse-subtle animation-delay-200" />
+      </div>
+
+      {/* Floating Shapes */}
+      <div className="absolute right-0 top-32 w-1/3 h-full -z-10 opacity-60">
+        <img 
+          src={heroShapes} 
+          alt="" 
+          className="w-full h-auto animate-float object-contain"
+          aria-hidden="true"
+        />
+      </div>
+
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-          <div className="animate-fade-in">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
-              <span className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-              THE FUTURE OF EDUCATION
-            </div>
-            
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground leading-tight mb-6">
-              Your<br />
-              Portfolio is<br />
-              the <span className="text-primary">New</span><br />
-              <span className="text-primary">GPA.</span>
-            </h1>
-            
-            <p className="text-lg text-muted-foreground mb-8 max-w-md">
-              Heuristic replaces standardized testing with real-world projects from the world's leading companies. Prove your skills, not your memorization.
-            </p>
-            
-            <div className="flex flex-col sm:flex-row gap-4 mb-8">
-              <Button size="lg" className="rounded-lg px-6">
-                Start Your Project
-              </Button>
-              <Button size="lg" variant="outline" className="rounded-lg px-6">
-                Partner with Us
-              </Button>
-            </div>
-            
-            <div className="flex items-center gap-3">
-              <div className="flex -space-x-2">
-                {[1, 2, 3, 4].map((i) => (
-                  <div
-                    key={i}
-                    className="w-8 h-8 rounded-full bg-muted border-2 border-background"
-                  />
-                ))}
-              </div>
-              <span className="text-sm text-muted-foreground">
-                Join by 10,000+ students this month
-              </span>
-            </div>
+        <div className="max-w-5xl mx-auto text-center">
+          {/* Badge */}
+          <div className="animate-fade-in-up inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20 mb-10">
+            <Sparkles className="w-4 h-4 text-primary" />
+            <span className="text-sm font-semibold text-foreground">The Future of Education</span>
           </div>
-          
-          <div className="animate-fade-in animation-delay-200 relative">
-            <div className="relative rounded-2xl overflow-hidden shadow-2xl">
-              <img
-                src={dashboardMockup}
-                alt="Heuristic Dashboard showing project management and approval status"
-                className="w-full h-auto"
-              />
+
+          {/* Main Headlines */}
+          <div className="space-y-4 mb-12">
+            <h1 className="animate-fade-in-up animation-delay-100 text-5xl sm:text-6xl lg:text-8xl font-black font-display text-foreground leading-none tracking-tighter">
+              Build Projects.
+            </h1>
+            <h1 className="animate-fade-in-up animation-delay-200 text-5xl sm:text-6xl lg:text-8xl font-black font-display leading-none tracking-tighter gradient-text">
+              Skip Exams.
+            </h1>
+            <h1 className="animate-fade-in-up animation-delay-300 text-5xl sm:text-6xl lg:text-8xl font-black font-display text-foreground leading-none tracking-tighter">
+              Get Hired.
+            </h1>
+          </div>
+
+          {/* Subheadline */}
+          <p className="animate-fade-in-up animation-delay-400 text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-12 leading-relaxed">
+            Heuristic replaces traditional exams with real-world company projects. 
+            Earn credits, prove your skills, and land your dream job before graduation.
+          </p>
+
+          {/* CTA Button */}
+          <div className="animate-fade-in-up animation-delay-500">
+            <Button 
+              size="lg" 
+              className="h-16 px-12 text-lg font-bold rounded-3xl bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-all duration-500 hover:shadow-2xl hover:scale-105 group"
+            >
+              Start Building Now
+              <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
+            </Button>
+          </div>
+
+          {/* Stats Row */}
+          <div className="animate-fade-in-up animation-delay-600 mt-20 grid grid-cols-3 gap-8 max-w-3xl mx-auto">
+            <div className="text-center">
+              <p className="text-4xl lg:text-5xl font-black font-display text-foreground">500+</p>
+              <p className="text-sm text-muted-foreground mt-1 font-medium">Active Projects</p>
             </div>
-            <div className="absolute -z-10 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-gradient-to-r from-primary/5 to-primary/10 rounded-full blur-3xl" />
+            <div className="text-center border-x border-border">
+              <p className="text-4xl lg:text-5xl font-black font-display gradient-text">40%</p>
+              <p className="text-sm text-muted-foreground mt-1 font-medium">Hired Before Grad</p>
+            </div>
+            <div className="text-center">
+              <p className="text-4xl lg:text-5xl font-black font-display text-foreground">100+</p>
+              <p className="text-sm text-muted-foreground mt-1 font-medium">Partner Companies</p>
+            </div>
           </div>
         </div>
       </div>
