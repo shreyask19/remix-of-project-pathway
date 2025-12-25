@@ -16,15 +16,21 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "@/contexts/UserContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { useTeacherProfile } from "@/hooks/useTeacherProfile";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import HeuristicLogo from "@/components/HeuristicLogo";
 
 const TeacherOnboarding = () => {
   const navigate = useNavigate();
   const { updateUser, setIsOnboarded } = useUser();
+  const { user, completeOnboarding } = useAuth();
+  const { saveProfile } = useTeacherProfile();
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 4;
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSaving, setIsSaving] = useState(false);
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -157,7 +163,7 @@ const TeacherOnboarding = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (!validateStep(currentStep)) {
       toast.error("Please fill in all required fields");
       return;
@@ -166,10 +172,52 @@ const TeacherOnboarding = () => {
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
     } else {
-      updateUser({ ...formData, role: "teacher" });
-      setIsOnboarded(true);
-      toast.success(`Welcome, ${formData.firstName}! Your dashboard is ready.`);
-      navigate("/teacher");
+      if (!user) {
+        toast.error("Please log in to continue");
+        return;
+      }
+      
+      setIsSaving(true);
+      try {
+        // Update the profiles table with basic info
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .update({
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            phone: formData.phone,
+          })
+          .eq("id", user.id);
+
+        if (profileError) throw profileError;
+
+        // Save teacher-specific data to teacher_profiles table
+        await saveProfile.mutateAsync({
+          designation: formData.designation,
+          institutionName: formData.institutionName,
+          institutionType: formData.institutionType,
+          department: formData.department,
+          employeeId: formData.employeeId,
+          yearsOfExperience: formData.yearsOfExperience,
+          subjectsTaught: formData.subjectsTaught,
+          specializations: formData.specializations,
+        });
+
+        // Mark as onboarded in database
+        await completeOnboarding();
+
+        // Also update UserContext for backward compatibility
+        updateUser({ ...formData, role: "teacher" });
+        setIsOnboarded(true);
+        
+        toast.success(`Welcome, ${formData.firstName}! Your dashboard is ready.`);
+        navigate("/teacher");
+      } catch (error: any) {
+        console.error("Error saving teacher profile:", error);
+        toast.error(error.message || "Failed to save profile. Please try again.");
+      } finally {
+        setIsSaving(false);
+      }
     }
   };
 
