@@ -1,10 +1,13 @@
-import DashboardHeader from "@/components/dashboard/DashboardHeader";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { useUser } from "@/contexts/UserContext";
+import { useNavigate } from "react-router-dom";
 import CompanyOverview from "@/components/company/CompanyOverview";
 import ProjectCreation from "@/components/company/ProjectCreation";
 import SubmissionReview from "@/components/company/SubmissionReview";
 import HiringPipeline from "@/components/company/HiringPipeline";
 import TalentPool from "@/components/company/TalentPool";
-import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard,
   Briefcase,
@@ -12,15 +15,21 @@ import {
   GitBranch,
   Users,
   Settings,
-  Award,
+  Building2,
   Plus,
   Bell,
-  MessageSquare
+  LogOut
 } from "lucide-react";
-import { useState } from "react";
 
 const CompanyDashboard = () => {
+  const navigate = useNavigate();
+  const { user, setUser, setIsOnboarded } = useUser();
   const [activeTab, setActiveTab] = useState("overview");
+
+  const companyName = user?.companyName || user?.firstName || "Company";
+  const userInitials = user?.firstName && user?.lastName 
+    ? `${user.firstName[0]}${user.lastName[0]}`
+    : "CO";
 
   const sidebarSections = [
     {
@@ -38,6 +47,12 @@ const CompanyDashboard = () => {
       ],
     },
   ];
+
+  const handleLogout = () => {
+    setUser(null);
+    setIsOnboarded(false);
+    navigate("/");
+  };
 
   const renderContent = () => {
     switch (activeTab) {
@@ -65,17 +80,18 @@ const CompanyDashboard = () => {
       case "talent":
         return "Talent Pool";
       default:
-        return "Good morning, Acme Corp";
+        return `Welcome, ${companyName}`;
     }
   };
 
   return (
-    <div className="flex h-screen bg-secondary/30">
-      <aside className="w-64 h-screen bg-card border-r border-border flex flex-col">
-        <div className="p-5 border-b border-border">
+    <div className="flex h-screen bg-gradient-to-br from-background via-background to-purple-500/5">
+      {/* Sidebar */}
+      <aside className="w-64 h-screen bg-card/80 backdrop-blur-xl border-r border-border flex flex-col">
+        <div className="p-5 border-b border-border/50">
           <a href="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-primary flex items-center justify-center">
-              <Award className="w-5 h-5 text-primary-foreground" />
+            <div className="w-10 h-10 rounded-2xl bg-purple-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
+              <Building2 className="w-5 h-5 text-white" />
             </div>
             <div>
               <h1 className="font-bold font-display text-foreground">Heuristic</h1>
@@ -93,13 +109,15 @@ const CompanyDashboard = () => {
                     <button
                       onClick={() => setActiveTab(item.id)}
                       className={`w-full sidebar-nav-item ${
-                        activeTab === item.id ? "sidebar-nav-item-active" : "sidebar-nav-item-inactive"
+                        activeTab === item.id 
+                          ? "bg-purple-500/10 text-purple-600" 
+                          : "sidebar-nav-item-inactive"
                       }`}
                     >
                       {item.icon}
                       <span>{item.label}</span>
                       {item.badge && (
-                        <span className="ml-auto w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">
+                        <span className="ml-auto w-5 h-5 rounded-full bg-purple-500 text-white text-xs flex items-center justify-center font-medium">
                           {item.badge}
                         </span>
                       )}
@@ -111,22 +129,33 @@ const CompanyDashboard = () => {
           ))}
         </nav>
 
-        <div className="p-4 border-t border-border">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">
-              AC
+        <div className="p-4 border-t border-border/50">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 text-white flex items-center justify-center font-bold shadow-lg">
+              {userInitials}
             </div>
-            <div>
-              <p className="text-sm font-medium text-foreground">Alex Morgan</p>
-              <p className="text-xs text-muted-foreground">Acme Corp</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-foreground truncate">
+                {user?.firstName} {user?.lastName}
+              </p>
+              <p className="text-xs text-muted-foreground truncate">{user?.companyName || "Company"}</p>
             </div>
           </div>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
+            onClick={handleLogout}
+          >
+            <LogOut className="w-4 h-4" />
+            Sign out
+          </Button>
         </div>
       </aside>
 
+      {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Custom Header */}
-        <header className="h-16 border-b border-border bg-card px-6 flex items-center justify-between">
+        <header className="h-16 border-b border-border/50 bg-card/50 backdrop-blur-sm px-6 flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold text-foreground">{getHeaderTitle()}</h1>
             {activeTab === "overview" && (
@@ -139,11 +168,8 @@ const CompanyDashboard = () => {
               <Bell className="w-5 h-5" />
               <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full" />
             </Button>
-            <Button variant="ghost" size="icon" className="rounded-xl">
-              <MessageSquare className="w-5 h-5" />
-            </Button>
             {activeTab === "challenges" && (
-              <Button className="gap-2 rounded-2xl">
+              <Button className="gap-2 rounded-2xl bg-purple-500 hover:bg-purple-600">
                 <Plus className="w-4 h-4" />
                 Create Challenge
               </Button>
