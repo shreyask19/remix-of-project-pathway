@@ -40,12 +40,12 @@ const Hero = () => {
 
           {/* CTA Button */}
           <div className="animate-fade-in-up animation-delay-500">
-            <Link to="/student/onboarding">
+            <Link to="/get-started">
               <Button 
                 size="lg" 
                 className="h-16 px-12 text-lg font-bold rounded-3xl bg-primary hover:bg-primary/90 transition-all duration-300 hover:shadow-xl group"
               >
-                Start Building Now
+                Get Started
                 <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
               </Button>
             </Link>

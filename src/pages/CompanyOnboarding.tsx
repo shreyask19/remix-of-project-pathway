@@ -11,20 +11,22 @@ import {
   Check,
   Plus,
   Globe,
-  Users,
   MapPin,
-  DollarSign,
-  GraduationCap
+  AlertCircle,
+  Linkedin
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useUser } from "@/contexts/UserContext";
+import { toast } from "sonner";
 
 const CompanyOnboarding = () => {
   const navigate = useNavigate();
+  const { updateUser, setIsOnboarded } = useUser();
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 4;
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const [formData, setFormData] = useState({
-    // Step 1: Company Info
     companyName: "",
     industry: "",
     companySize: "",
@@ -32,26 +34,19 @@ const CompanyOnboarding = () => {
     linkedinUrl: "",
     headquarters: "",
     description: "",
-    
-    // Step 2: Contact Person
-    contactFirstName: "",
-    contactLastName: "",
-    contactEmail: "",
-    contactPhone: "",
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    age: "",
     contactRole: "",
-    
-    // Step 3: Hiring Needs
     hiringRoles: [] as string[],
     requiredSkills: [] as string[],
     hiringLocations: [] as string[],
     internshipBudget: "",
     hiringTimeline: "",
-    
-    // Step 4: Project Preferences
     projectTypes: [] as string[],
-    projectDifficulty: [] as string[],
     evaluationCriteria: [] as string[],
-    companyValues: [] as string[],
   });
 
   const [customRole, setCustomRole] = useState("");
@@ -67,12 +62,6 @@ const CompanyOnboarding = () => {
     "Manufacturing",
     "Consulting",
     "Media / Entertainment",
-    "Telecommunications",
-    "Automotive",
-    "Aerospace",
-    "Energy / CleanTech",
-    "Real Estate / PropTech",
-    "Travel / Hospitality",
     "Other"
   ];
 
@@ -86,98 +75,38 @@ const CompanyOnboarding = () => {
   ];
 
   const roleOptions = [
-    "Software Engineer",
-    "Frontend Developer",
-    "Backend Developer",
-    "Full Stack Developer",
-    "Data Scientist",
-    "Data Analyst",
-    "ML Engineer",
-    "DevOps Engineer",
-    "Cloud Engineer",
-    "Product Manager",
-    "UX Designer",
-    "UI Designer",
-    "QA Engineer",
-    "Security Engineer",
-    "Mobile Developer",
-    "Blockchain Developer"
+    "Software Engineer", "Frontend Developer", "Backend Developer", "Full Stack Developer",
+    "Data Scientist", "ML Engineer", "DevOps Engineer", "Product Manager", "UX Designer"
   ];
 
   const skillOptions = [
-    "Python", "JavaScript", "TypeScript", "Java", "C++", "Go", "Rust",
-    "React", "Angular", "Vue.js", "Node.js", "Django", "Spring Boot",
-    "AWS", "Azure", "GCP", "Docker", "Kubernetes",
-    "Machine Learning", "Data Analysis", "SQL", "NoSQL",
-    "UI/UX Design", "Figma", "Product Management"
+    "Python", "JavaScript", "TypeScript", "Java", "C++",
+    "React", "Node.js", "Django", "AWS", "Docker",
+    "Machine Learning", "SQL", "UI/UX Design"
   ];
 
-  const locationOptions = [
-    "Remote",
-    "Bangalore",
-    "Mumbai",
-    "Delhi NCR",
-    "Hyderabad",
-    "Chennai",
-    "Pune",
-    "Kolkata",
-    "San Francisco",
-    "New York",
-    "London",
-    "Singapore"
-  ];
+  const locationOptions = ["Remote", "Bangalore", "Mumbai", "Delhi NCR", "Hyderabad", "Chennai", "Pune", "San Francisco", "New York"];
 
   const projectTypeOptions = [
     { id: "frontend", label: "Frontend Development" },
     { id: "backend", label: "Backend Development" },
     { id: "fullstack", label: "Full Stack Projects" },
-    { id: "mobile", label: "Mobile App Development" },
     { id: "data", label: "Data & Analytics" },
     { id: "ml", label: "Machine Learning / AI" },
     { id: "design", label: "UI/UX Design" },
-    { id: "devops", label: "DevOps & Infrastructure" },
-    { id: "security", label: "Security & Compliance" },
-    { id: "research", label: "Research & Prototyping" },
   ];
 
   const evaluationOptions = [
-    "Code Quality",
-    "Problem-Solving Approach",
-    "Communication Skills",
-    "Documentation",
-    "Testing Coverage",
-    "Performance Optimization",
-    "Security Best Practices",
-    "User Experience",
-    "Creativity & Innovation",
-    "Deadline Adherence"
-  ];
-
-  const valueOptions = [
-    "Innovation",
-    "Collaboration",
-    "Diversity & Inclusion",
-    "Work-Life Balance",
-    "Continuous Learning",
-    "Customer Focus",
-    "Integrity",
-    "Excellence",
-    "Sustainability",
-    "Agility"
+    "Code Quality", "Problem-Solving", "Communication", "Documentation",
+    "Testing Coverage", "Performance", "Security", "Creativity"
   ];
 
   const toggleArrayItem = (field: keyof typeof formData, item: string) => {
     const currentArray = formData[field] as string[];
     if (currentArray.includes(item)) {
-      setFormData({
-        ...formData,
-        [field]: currentArray.filter(i => i !== item)
-      });
+      setFormData({ ...formData, [field]: currentArray.filter(i => i !== item) });
     } else {
-      setFormData({
-        ...formData,
-        [field]: [...currentArray, item]
-      });
+      setFormData({ ...formData, [field]: [...currentArray, item] });
     }
   };
 
@@ -185,36 +114,66 @@ const CompanyOnboarding = () => {
     if (value.trim()) {
       const currentArray = formData[field] as string[];
       if (!currentArray.includes(value.trim())) {
-        setFormData({
-          ...formData,
-          [field]: [...currentArray, value.trim()]
-        });
+        setFormData({ ...formData, [field]: [...currentArray, value.trim()] });
       }
       setter("");
     }
   };
 
+  const validateStep = (step: number): boolean => {
+    const newErrors: Record<string, string> = {};
+    
+    if (step === 1) {
+      if (!formData.companyName.trim()) newErrors.companyName = "Company name is required";
+      if (!formData.industry) newErrors.industry = "Industry is required";
+      if (!formData.companySize) newErrors.companySize = "Company size is required";
+    }
+    
+    if (step === 2) {
+      if (!formData.firstName.trim()) newErrors.firstName = "First name is required";
+      if (!formData.lastName.trim()) newErrors.lastName = "Last name is required";
+      if (!formData.email.trim()) newErrors.email = "Email is required";
+      if (!formData.phone.trim()) newErrors.phone = "Phone number is required";
+      if (!formData.age.trim()) newErrors.age = "Age is required";
+      if (!formData.contactRole.trim()) newErrors.contactRole = "Role is required";
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleNext = () => {
+    if (!validateStep(currentStep)) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+    
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
     } else {
+      updateUser({ ...formData, role: "company" });
+      setIsOnboarded(true);
+      toast.success(`Welcome, ${formData.firstName}! Start posting challenges.`);
       navigate("/company");
     }
   };
 
   const handleBack = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-    }
+    if (currentStep > 1) setCurrentStep(currentStep - 1);
   };
+
+  const inputClass = (field: string) => 
+    `w-full px-4 py-3.5 bg-secondary/50 rounded-xl text-foreground border transition-all outline-none focus:ring-2 focus:ring-primary/20 ${
+      errors[field] ? "border-destructive" : "border-transparent focus:border-primary/30"
+    }`;
 
   const renderStep = () => {
     switch (currentStep) {
       case 1:
         return (
-          <div className="space-y-6">
+          <div className="space-y-6 animate-fade-in">
             <div className="text-center mb-8">
-              <div className="w-16 h-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 rounded-2xl bg-purple-500/10 text-purple-500 flex items-center justify-center mx-auto mb-4">
                 <Building2 className="w-8 h-8" />
               </div>
               <h2 className="text-2xl font-bold text-foreground">Company Information</h2>
@@ -222,86 +181,53 @@ const CompanyOnboarding = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2">Company Name *</label>
-              <input
-                type="text"
-                value={formData.companyName}
-                onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
-                placeholder="e.g., Acme Corporation"
-                className="w-full px-4 py-3 bg-secondary rounded-2xl text-foreground border-0 outline-none focus:ring-2 focus:ring-primary/20"
-              />
+              <label className="block text-sm font-medium text-foreground mb-2">Company Name <span className="text-destructive">*</span></label>
+              <input type="text" value={formData.companyName} onChange={(e) => setFormData({ ...formData, companyName: e.target.value })} placeholder="e.g., Acme Corporation" className={inputClass("companyName")} />
+              {errors.companyName && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.companyName}</p>}
             </div>
 
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">Industry *</label>
-                <select
-                  value={formData.industry}
-                  onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
-                  className="w-full px-4 py-3 bg-secondary rounded-2xl text-foreground border-0 outline-none focus:ring-2 focus:ring-primary/20"
-                >
+                <label className="block text-sm font-medium text-foreground mb-2">Industry <span className="text-destructive">*</span></label>
+                <select value={formData.industry} onChange={(e) => setFormData({ ...formData, industry: e.target.value })} className={inputClass("industry")}>
                   <option value="">Select industry</option>
-                  {industries.map((ind) => (
-                    <option key={ind} value={ind}>{ind}</option>
-                  ))}
+                  {industries.map((ind) => (<option key={ind} value={ind}>{ind}</option>))}
                 </select>
+                {errors.industry && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.industry}</p>}
               </div>
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">Company Size *</label>
-                <select
-                  value={formData.companySize}
-                  onChange={(e) => setFormData({ ...formData, companySize: e.target.value })}
-                  className="w-full px-4 py-3 bg-secondary rounded-2xl text-foreground border-0 outline-none focus:ring-2 focus:ring-primary/20"
-                >
+                <label className="block text-sm font-medium text-foreground mb-2">Company Size <span className="text-destructive">*</span></label>
+                <select value={formData.companySize} onChange={(e) => setFormData({ ...formData, companySize: e.target.value })} className={inputClass("companySize")}>
                   <option value="">Select size</option>
-                  {companySizes.map((size) => (
-                    <option key={size} value={size}>{size}</option>
-                  ))}
+                  {companySizes.map((size) => (<option key={size} value={size}>{size}</option>))}
                 </select>
+                {errors.companySize && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.companySize}</p>}
               </div>
             </div>
 
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">Website</label>
-                <input
-                  type="url"
-                  value={formData.website}
-                  onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-                  placeholder="https://www.company.com"
-                  className="w-full px-4 py-3 bg-secondary rounded-2xl text-foreground border-0 outline-none focus:ring-2 focus:ring-primary/20"
-                />
+                <label className="block text-sm font-medium text-foreground mb-2"><Globe className="w-4 h-4 inline mr-1" />Website</label>
+                <input type="url" value={formData.website} onChange={(e) => setFormData({ ...formData, website: e.target.value })} placeholder="https://company.com" className={inputClass("website")} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">Headquarters</label>
-                <input
-                  type="text"
-                  value={formData.headquarters}
-                  onChange={(e) => setFormData({ ...formData, headquarters: e.target.value })}
-                  placeholder="e.g., Bangalore, India"
-                  className="w-full px-4 py-3 bg-secondary rounded-2xl text-foreground border-0 outline-none focus:ring-2 focus:ring-primary/20"
-                />
+                <label className="block text-sm font-medium text-foreground mb-2"><MapPin className="w-4 h-4 inline mr-1" />Headquarters</label>
+                <input type="text" value={formData.headquarters} onChange={(e) => setFormData({ ...formData, headquarters: e.target.value })} placeholder="e.g., Bangalore, India" className={inputClass("headquarters")} />
               </div>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-foreground mb-2">Company Description</label>
-              <textarea
-                rows={3}
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Brief description of what your company does..."
-                className="w-full px-4 py-3 bg-secondary rounded-2xl text-foreground border-0 outline-none focus:ring-2 focus:ring-primary/20 resize-none"
-              />
+              <textarea rows={3} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="Brief description of what your company does..." className={`${inputClass("description")} resize-none`} />
             </div>
           </div>
         );
 
       case 2:
         return (
-          <div className="space-y-6">
+          <div className="space-y-6 animate-fade-in">
             <div className="text-center mb-8">
-              <div className="w-16 h-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 rounded-2xl bg-purple-500/10 text-purple-500 flex items-center justify-center mx-auto mb-4">
                 <User className="w-8 h-8" />
               </div>
               <h2 className="text-2xl font-bold text-foreground">Contact Person</h2>
@@ -310,206 +236,96 @@ const CompanyOnboarding = () => {
 
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">First Name *</label>
-                <input
-                  type="text"
-                  value={formData.contactFirstName}
-                  onChange={(e) => setFormData({ ...formData, contactFirstName: e.target.value })}
-                  placeholder="Alex"
-                  className="w-full px-4 py-3 bg-secondary rounded-2xl text-foreground border-0 outline-none focus:ring-2 focus:ring-primary/20"
-                />
+                <label className="block text-sm font-medium text-foreground mb-2">First Name <span className="text-destructive">*</span></label>
+                <input type="text" value={formData.firstName} onChange={(e) => setFormData({ ...formData, firstName: e.target.value })} placeholder="Alex" className={inputClass("firstName")} />
+                {errors.firstName && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.firstName}</p>}
               </div>
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">Last Name *</label>
-                <input
-                  type="text"
-                  value={formData.contactLastName}
-                  onChange={(e) => setFormData({ ...formData, contactLastName: e.target.value })}
-                  placeholder="Morgan"
-                  className="w-full px-4 py-3 bg-secondary rounded-2xl text-foreground border-0 outline-none focus:ring-2 focus:ring-primary/20"
-                />
+                <label className="block text-sm font-medium text-foreground mb-2">Last Name <span className="text-destructive">*</span></label>
+                <input type="text" value={formData.lastName} onChange={(e) => setFormData({ ...formData, lastName: e.target.value })} placeholder="Morgan" className={inputClass("lastName")} />
+                {errors.lastName && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.lastName}</p>}
               </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">Role / Title *</label>
-              <input
-                type="text"
-                value={formData.contactRole}
-                onChange={(e) => setFormData({ ...formData, contactRole: e.target.value })}
-                placeholder="e.g., Head of Talent Acquisition"
-                className="w-full px-4 py-3 bg-secondary rounded-2xl text-foreground border-0 outline-none focus:ring-2 focus:ring-primary/20"
-              />
             </div>
 
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">Work Email *</label>
-                <input
-                  type="email"
-                  value={formData.contactEmail}
-                  onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
-                  placeholder="alex@company.com"
-                  className="w-full px-4 py-3 bg-secondary rounded-2xl text-foreground border-0 outline-none focus:ring-2 focus:ring-primary/20"
-                />
+                <label className="block text-sm font-medium text-foreground mb-2">Age <span className="text-destructive">*</span></label>
+                <input type="number" value={formData.age} onChange={(e) => setFormData({ ...formData, age: e.target.value })} placeholder="30" className={inputClass("age")} />
+                {errors.age && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.age}</p>}
               </div>
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">Phone Number</label>
-                <input
-                  type="tel"
-                  value={formData.contactPhone}
-                  onChange={(e) => setFormData({ ...formData, contactPhone: e.target.value })}
-                  placeholder="+91 98765 43210"
-                  className="w-full px-4 py-3 bg-secondary rounded-2xl text-foreground border-0 outline-none focus:ring-2 focus:ring-primary/20"
-                />
+                <label className="block text-sm font-medium text-foreground mb-2">Phone Number <span className="text-destructive">*</span></label>
+                <input type="tel" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} placeholder="+91 98765 43210" className={inputClass("phone")} />
+                {errors.phone && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.phone}</p>}
               </div>
             </div>
 
-            <div className="p-4 rounded-2xl bg-primary/5 border border-primary/20">
-              <p className="text-sm text-muted-foreground">
-                <strong className="text-foreground">Note:</strong> This person will receive notifications about submissions, have access to grade candidates, and manage hiring pipelines.
-              </p>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">Work Email <span className="text-destructive">*</span></label>
+              <input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} placeholder="alex@company.com" className={inputClass("email")} />
+              {errors.email && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.email}</p>}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">Role / Title <span className="text-destructive">*</span></label>
+              <input type="text" value={formData.contactRole} onChange={(e) => setFormData({ ...formData, contactRole: e.target.value })} placeholder="e.g., Head of Talent Acquisition" className={inputClass("contactRole")} />
+              {errors.contactRole && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.contactRole}</p>}
             </div>
           </div>
         );
 
       case 3:
         return (
-          <div className="space-y-6">
+          <div className="space-y-6 animate-fade-in">
             <div className="text-center mb-8">
-              <div className="w-16 h-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 rounded-2xl bg-purple-500/10 text-purple-500 flex items-center justify-center mx-auto mb-4">
                 <Target className="w-8 h-8" />
               </div>
               <h2 className="text-2xl font-bold text-foreground">Hiring Needs</h2>
               <p className="text-muted-foreground mt-2">What kind of talent are you looking for?</p>
             </div>
 
-            {/* Roles */}
             <div>
               <label className="block text-sm font-medium text-foreground mb-3">Roles You're Hiring For</label>
               <div className="flex flex-wrap gap-2 mb-3">
                 {roleOptions.map((role) => (
-                  <button
-                    key={role}
-                    onClick={() => toggleArrayItem("hiringRoles", role)}
-                    className={`px-3 py-1.5 rounded-xl text-sm transition-colors ${
-                      formData.hiringRoles.includes(role)
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-secondary text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
+                  <button key={role} type="button" onClick={() => toggleArrayItem("hiringRoles", role)}
+                    className={`px-3 py-2 rounded-xl text-sm transition-all ${formData.hiringRoles.includes(role) ? "bg-purple-500 text-white shadow-md" : "bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
                     {role}
                   </button>
                 ))}
               </div>
               <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={customRole}
-                  onChange={(e) => setCustomRole(e.target.value)}
-                  placeholder="Add custom role..."
-                  className="flex-1 px-4 py-2 bg-secondary rounded-2xl text-foreground text-sm border-0 outline-none focus:ring-2 focus:ring-primary/20"
-                  onKeyPress={(e) => e.key === "Enter" && addCustomItem("hiringRoles", customRole, setCustomRole)}
-                />
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="rounded-xl"
-                  onClick={() => addCustomItem("hiringRoles", customRole, setCustomRole)}
-                >
-                  <Plus className="w-4 h-4" />
-                </Button>
+                <input type="text" value={customRole} onChange={(e) => setCustomRole(e.target.value)} placeholder="Add custom role..." className="flex-1 px-4 py-2.5 bg-secondary/50 rounded-xl text-foreground text-sm border-0 outline-none" onKeyPress={(e) => e.key === "Enter" && addCustomItem("hiringRoles", customRole, setCustomRole)} />
+                <Button variant="outline" size="sm" className="rounded-xl" onClick={() => addCustomItem("hiringRoles", customRole, setCustomRole)}><Plus className="w-4 h-4" /></Button>
               </div>
             </div>
 
-            {/* Skills */}
             <div>
               <label className="block text-sm font-medium text-foreground mb-3">Required Skills</label>
               <div className="flex flex-wrap gap-2 mb-3">
-                {skillOptions.slice(0, 15).map((skill) => (
-                  <button
-                    key={skill}
-                    onClick={() => toggleArrayItem("requiredSkills", skill)}
-                    className={`px-3 py-1.5 rounded-xl text-sm transition-colors ${
-                      formData.requiredSkills.includes(skill)
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-secondary text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
+                {skillOptions.map((skill) => (
+                  <button key={skill} type="button" onClick={() => toggleArrayItem("requiredSkills", skill)}
+                    className={`px-3 py-2 rounded-xl text-sm transition-all ${formData.requiredSkills.includes(skill) ? "bg-purple-500 text-white shadow-md" : "bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
                     {skill}
                   </button>
                 ))}
               </div>
               <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={customSkill}
-                  onChange={(e) => setCustomSkill(e.target.value)}
-                  placeholder="Add custom skill..."
-                  className="flex-1 px-4 py-2 bg-secondary rounded-2xl text-foreground text-sm border-0 outline-none focus:ring-2 focus:ring-primary/20"
-                  onKeyPress={(e) => e.key === "Enter" && addCustomItem("requiredSkills", customSkill, setCustomSkill)}
-                />
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="rounded-xl"
-                  onClick={() => addCustomItem("requiredSkills", customSkill, setCustomSkill)}
-                >
-                  <Plus className="w-4 h-4" />
-                </Button>
+                <input type="text" value={customSkill} onChange={(e) => setCustomSkill(e.target.value)} placeholder="Add custom skill..." className="flex-1 px-4 py-2.5 bg-secondary/50 rounded-xl text-foreground text-sm border-0 outline-none" onKeyPress={(e) => e.key === "Enter" && addCustomItem("requiredSkills", customSkill, setCustomSkill)} />
+                <Button variant="outline" size="sm" className="rounded-xl" onClick={() => addCustomItem("requiredSkills", customSkill, setCustomSkill)}><Plus className="w-4 h-4" /></Button>
               </div>
             </div>
 
-            {/* Locations */}
             <div>
               <label className="block text-sm font-medium text-foreground mb-3">Hiring Locations</label>
               <div className="flex flex-wrap gap-2">
                 {locationOptions.map((loc) => (
-                  <button
-                    key={loc}
-                    onClick={() => toggleArrayItem("hiringLocations", loc)}
-                    className={`px-3 py-1.5 rounded-xl text-sm transition-colors flex items-center gap-1 ${
-                      formData.hiringLocations.includes(loc)
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-secondary text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    <MapPin className="w-3 h-3" />
+                  <button key={loc} type="button" onClick={() => toggleArrayItem("hiringLocations", loc)}
+                    className={`px-3 py-2 rounded-xl text-sm transition-all ${formData.hiringLocations.includes(loc) ? "bg-purple-500 text-white shadow-md" : "bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
                     {loc}
                   </button>
                 ))}
-              </div>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">Internship/Entry Budget</label>
-                <select
-                  value={formData.internshipBudget}
-                  onChange={(e) => setFormData({ ...formData, internshipBudget: e.target.value })}
-                  className="w-full px-4 py-3 bg-secondary rounded-2xl text-foreground border-0 outline-none focus:ring-2 focus:ring-primary/20"
-                >
-                  <option value="">Select range</option>
-                  <option value="10-20k">₹10,000 - ₹20,000/month</option>
-                  <option value="20-40k">₹20,000 - ₹40,000/month</option>
-                  <option value="40-60k">₹40,000 - ₹60,000/month</option>
-                  <option value="60k+">₹60,000+/month</option>
-                  <option value="competitive">Competitive / Negotiable</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">Hiring Timeline</label>
-                <select
-                  value={formData.hiringTimeline}
-                  onChange={(e) => setFormData({ ...formData, hiringTimeline: e.target.value })}
-                  className="w-full px-4 py-3 bg-secondary rounded-2xl text-foreground border-0 outline-none focus:ring-2 focus:ring-primary/20"
-                >
-                  <option value="">Select timeline</option>
-                  <option value="immediate">Immediate (within 1 month)</option>
-                  <option value="1-3months">1-3 months</option>
-                  <option value="3-6months">3-6 months</option>
-                  <option value="ongoing">Ongoing / Rolling basis</option>
-                </select>
               </div>
             </div>
           </div>
@@ -517,107 +333,70 @@ const CompanyOnboarding = () => {
 
       case 4:
         return (
-          <div className="space-y-6">
+          <div className="space-y-6 animate-fade-in">
             <div className="text-center mb-8">
-              <div className="w-16 h-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 rounded-2xl bg-purple-500/10 text-purple-500 flex items-center justify-center mx-auto mb-4">
                 <Briefcase className="w-8 h-8" />
               </div>
               <h2 className="text-2xl font-bold text-foreground">Project Preferences</h2>
-              <p className="text-muted-foreground mt-2">What kind of challenges will you post?</p>
+              <p className="text-muted-foreground mt-2">What kind of challenges will you create?</p>
             </div>
 
-            {/* Project Types */}
             <div>
-              <label className="block text-sm font-medium text-foreground mb-3">Types of Projects</label>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              <label className="block text-sm font-medium text-foreground mb-3">Project Types You'll Post</label>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {projectTypeOptions.map((type) => (
-                  <button
-                    key={type.id}
-                    onClick={() => toggleArrayItem("projectTypes", type.id)}
-                    className={`p-3 rounded-2xl border-2 text-center transition-all ${
-                      formData.projectTypes.includes(type.id)
-                        ? "border-primary bg-primary/10"
-                        : "border-border hover:border-primary/50"
-                    }`}
-                  >
-                    <p className="text-xs font-medium text-foreground">{type.label}</p>
+                  <button key={type.id} type="button" onClick={() => toggleArrayItem("projectTypes", type.id)}
+                    className={`p-3 rounded-xl text-sm transition-all text-left ${formData.projectTypes.includes(type.id) ? "bg-purple-500 text-white shadow-md" : "bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
+                    {type.label}
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Difficulty */}
             <div>
-              <label className="block text-sm font-medium text-foreground mb-3">Project Difficulty Levels</label>
-              <div className="flex gap-3">
-                {["Easy", "Medium", "Hard"].map((diff) => (
-                  <button
-                    key={diff}
-                    onClick={() => toggleArrayItem("projectDifficulty", diff)}
-                    className={`flex-1 p-4 rounded-2xl border-2 text-center transition-all ${
-                      formData.projectDifficulty.includes(diff)
-                        ? "border-primary bg-primary/10"
-                        : "border-border hover:border-primary/50"
-                    }`}
-                  >
-                    <p className={`font-medium ${
-                      diff === "Easy" ? "text-success" :
-                      diff === "Medium" ? "text-warning" :
-                      "text-destructive"
-                    }`}>{diff}</p>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Evaluation Criteria */}
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-3">Important Evaluation Criteria</label>
+              <label className="block text-sm font-medium text-foreground mb-3">Evaluation Criteria</label>
               <div className="flex flex-wrap gap-2">
                 {evaluationOptions.map((criteria) => (
-                  <button
-                    key={criteria}
-                    onClick={() => toggleArrayItem("evaluationCriteria", criteria)}
-                    className={`px-3 py-1.5 rounded-xl text-sm transition-colors ${
-                      formData.evaluationCriteria.includes(criteria)
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-secondary text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
+                  <button key={criteria} type="button" onClick={() => toggleArrayItem("evaluationCriteria", criteria)}
+                    className={`px-3 py-2 rounded-xl text-sm transition-all ${formData.evaluationCriteria.includes(criteria) ? "bg-purple-500 text-white shadow-md" : "bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
                     {criteria}
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Company Values */}
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-3">Company Values (helps match culture fit)</label>
-              <div className="flex flex-wrap gap-2">
-                {valueOptions.map((value) => (
-                  <button
-                    key={value}
-                    onClick={() => toggleArrayItem("companyValues", value)}
-                    className={`px-3 py-1.5 rounded-xl text-sm transition-colors ${
-                      formData.companyValues.includes(value)
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-secondary text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {value}
-                  </button>
-                ))}
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">Internship Budget (per project)</label>
+                <select value={formData.internshipBudget} onChange={(e) => setFormData({ ...formData, internshipBudget: e.target.value })} className={inputClass("internshipBudget")}>
+                  <option value="">Select budget</option>
+                  <option value="unpaid">Unpaid (Credits only)</option>
+                  <option value="5k-15k">₹5,000 - ₹15,000</option>
+                  <option value="15k-30k">₹15,000 - ₹30,000</option>
+                  <option value="30k+">₹30,000+</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">Hiring Timeline</label>
+                <select value={formData.hiringTimeline} onChange={(e) => setFormData({ ...formData, hiringTimeline: e.target.value })} className={inputClass("hiringTimeline")}>
+                  <option value="">Select timeline</option>
+                  <option value="immediate">Immediate</option>
+                  <option value="1-3months">1-3 months</option>
+                  <option value="3-6months">3-6 months</option>
+                  <option value="6months+">6+ months</option>
+                </select>
               </div>
             </div>
 
             <div className="p-4 rounded-2xl bg-success/10 border border-success/20">
-              <div className="flex items-center gap-2 mb-2">
-                <Check className="w-5 h-5 text-success" />
-                <span className="font-medium text-foreground">Ready to Find Top Talent!</span>
+              <div className="flex items-start gap-3">
+                <Check className="w-5 h-5 text-success mt-0.5" />
+                <div>
+                  <h4 className="font-medium text-foreground">Ready to post challenges!</h4>
+                  <p className="text-sm text-muted-foreground">You can create project challenges, review student submissions, and build your hiring pipeline.</p>
+                </div>
               </div>
-              <p className="text-sm text-muted-foreground">
-                You can now post challenges, review submissions, grade candidates, and make direct hires through Heuristic.
-              </p>
             </div>
           </div>
         );
@@ -627,91 +406,47 @@ const CompanyOnboarding = () => {
     }
   };
 
-  const stepLabels = [
-    { step: 1, label: "Company", icon: <Building2 className="w-4 h-4" /> },
-    { step: 2, label: "Contact", icon: <User className="w-4 h-4" /> },
-    { step: 3, label: "Hiring", icon: <Target className="w-4 h-4" /> },
-    { step: 4, label: "Projects", icon: <Briefcase className="w-4 h-4" /> },
-  ];
-
   return (
-    <div className="min-h-screen bg-secondary/30 flex items-center justify-center p-4">
-      <div className="w-full max-w-3xl">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <a href="/" className="inline-flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center">
-              <GraduationCap className="w-6 h-6 text-primary-foreground" />
-            </div>
-            <span className="text-2xl font-bold font-display text-foreground">Heuristic</span>
-          </a>
-          <p className="text-muted-foreground mt-2">Company Onboarding</p>
-        </div>
+    <div className="min-h-screen bg-background flex flex-col">
+      <div className="absolute inset-0 -z-10 overflow-hidden">
+        <div className="absolute top-20 left-1/4 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-20 right-1/4 w-80 h-80 bg-purple-500/5 rounded-full blur-3xl" />
+      </div>
 
-        {/* Progress Steps */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            {stepLabels.map((item, idx) => (
-              <div key={item.step} className="flex items-center">
-                <div className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-colors ${
-                  currentStep === item.step 
-                    ? "bg-primary text-primary-foreground" 
-                    : currentStep > item.step
-                    ? "bg-success text-success-foreground"
-                    : "bg-secondary text-muted-foreground"
-                }`}>
-                  {currentStep > item.step ? <Check className="w-4 h-4" /> : item.icon}
-                  <span className="text-sm font-medium hidden md:inline">{item.label}</span>
-                </div>
-                {idx < stepLabels.length - 1 && (
-                  <div className={`w-8 md:w-20 h-0.5 mx-2 ${
-                    currentStep > item.step ? "bg-success" : "bg-border"
-                  }`} />
-                )}
+      <div className="border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-10">
+        <div className="container mx-auto px-4 py-4 max-w-3xl">
+          <div className="flex items-center justify-between mb-3">
+            <a href="/" className="flex items-center gap-2 text-foreground font-bold">
+              <div className="w-8 h-8 rounded-xl bg-purple-500 flex items-center justify-center">
+                <Building2 className="w-4 h-4 text-white" />
               </div>
-            ))}
+              <span className="font-display">Heuristic</span>
+            </a>
+            <span className="text-sm text-muted-foreground">Step {currentStep} of {totalSteps}</span>
           </div>
-          <Progress value={(currentStep / totalSteps) * 100} className="h-2" />
+          <Progress value={(currentStep / totalSteps) * 100} className="h-1.5" />
         </div>
+      </div>
 
-        {/* Form Card */}
-        <div className="bg-card rounded-3xl border border-border p-8 shadow-lg">
-          {renderStep()}
+      <div className="flex-1 container mx-auto px-4 py-8 max-w-2xl">{renderStep()}</div>
 
-          {/* Navigation */}
-          <div className="flex items-center justify-between mt-8 pt-6 border-t border-border">
-            <Button
-              variant="outline"
-              onClick={handleBack}
-              disabled={currentStep === 1}
-              className="rounded-2xl gap-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back
+      <div className="border-t border-border bg-background/80 backdrop-blur-sm sticky bottom-0">
+        <div className="container mx-auto px-4 py-4 max-w-2xl">
+          <div className="flex items-center justify-between">
+            <Button variant="ghost" onClick={handleBack} disabled={currentStep === 1} className="gap-2 rounded-xl">
+              <ArrowLeft className="w-4 h-4" />Back
             </Button>
-
-            <Button onClick={handleNext} className="rounded-2xl gap-2">
-              {currentStep === totalSteps ? (
-                <>
-                  Complete Setup
-                  <Check className="w-4 h-4" />
-                </>
-              ) : (
-                <>
-                  Continue
-                  <ArrowRight className="w-4 h-4" />
-                </>
-              )}
+            <div className="flex gap-2">
+              {[...Array(totalSteps)].map((_, i) => (
+                <div key={i} className={`w-2 h-2 rounded-full transition-all ${i + 1 === currentStep ? "w-6 bg-purple-500" : i + 1 < currentStep ? "bg-purple-500" : "bg-border"}`} />
+              ))}
+            </div>
+            <Button onClick={handleNext} className="gap-2 rounded-xl bg-purple-500 hover:bg-purple-600">
+              {currentStep === totalSteps ? "Complete" : "Continue"}
+              {currentStep === totalSteps ? <Check className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
             </Button>
           </div>
         </div>
-
-        <p className="text-center mt-4 text-sm text-muted-foreground">
-          Already have an account?{" "}
-          <a href="/company" className="text-primary font-medium hover:underline">
-            Skip to Dashboard
-          </a>
-        </p>
       </div>
     </div>
   );
