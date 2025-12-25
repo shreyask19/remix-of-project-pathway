@@ -14,16 +14,599 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      challenges: {
+        Row: {
+          category: string | null
+          company_id: string
+          created_at: string
+          credits: number
+          current_applicants: number
+          deadline: string | null
+          description: string
+          difficulty: string
+          id: string
+          max_applicants: number | null
+          required_skills: string[] | null
+          status: Database["public"]["Enums"]["challenge_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          company_id: string
+          created_at?: string
+          credits?: number
+          current_applicants?: number
+          deadline?: string | null
+          description?: string
+          difficulty?: string
+          id?: string
+          max_applicants?: number | null
+          required_skills?: string[] | null
+          status?: Database["public"]["Enums"]["challenge_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          company_id?: string
+          created_at?: string
+          credits?: number
+          current_applicants?: number
+          deadline?: string | null
+          description?: string
+          difficulty?: string
+          id?: string
+          max_applicants?: number | null
+          required_skills?: string[] | null
+          status?: Database["public"]["Enums"]["challenge_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      company_profiles: {
+        Row: {
+          company_name: string
+          company_size: string | null
+          contact_role: string | null
+          created_at: string
+          description: string | null
+          headquarters: string | null
+          hiring_roles: string[] | null
+          id: string
+          industry: string | null
+          logo_url: string | null
+          required_skills: string[] | null
+          updated_at: string
+          user_id: string
+          website: string | null
+        }
+        Insert: {
+          company_name?: string
+          company_size?: string | null
+          contact_role?: string | null
+          created_at?: string
+          description?: string | null
+          headquarters?: string | null
+          hiring_roles?: string[] | null
+          id?: string
+          industry?: string | null
+          logo_url?: string | null
+          required_skills?: string[] | null
+          updated_at?: string
+          user_id: string
+          website?: string | null
+        }
+        Update: {
+          company_name?: string
+          company_size?: string | null
+          contact_role?: string | null
+          created_at?: string
+          description?: string | null
+          headquarters?: string | null
+          hiring_roles?: string[] | null
+          id?: string
+          industry?: string | null
+          logo_url?: string | null
+          required_skills?: string[] | null
+          updated_at?: string
+          user_id?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
+      credits_ledger: {
+        Row: {
+          amount: number
+          awarded_at: string
+          challenge_id: string | null
+          id: string
+          reason: string
+          student_id: string
+          submission_id: string | null
+        }
+        Insert: {
+          amount: number
+          awarded_at?: string
+          challenge_id?: string | null
+          id?: string
+          reason: string
+          student_id: string
+          submission_id?: string | null
+        }
+        Update: {
+          amount?: number
+          awarded_at?: string
+          challenge_id?: string | null
+          id?: string
+          reason?: string
+          student_id?: string
+          submission_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credits_ledger_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credits_ledger_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exemption_requests: {
+        Row: {
+          created_at: string
+          credits_at_request: number
+          id: string
+          reason: string | null
+          reviewed_at: string | null
+          status: string
+          student_id: string
+          subject: string
+          teacher_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          credits_at_request?: number
+          id?: string
+          reason?: string | null
+          reviewed_at?: string | null
+          status?: string
+          student_id: string
+          subject: string
+          teacher_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          credits_at_request?: number
+          id?: string
+          reason?: string | null
+          reviewed_at?: string | null
+          status?: string
+          student_id?: string
+          subject?: string
+          teacher_id?: string | null
+        }
+        Relationships: []
+      }
+      grade_approvals: {
+        Row: {
+          approved_at: string | null
+          created_at: string
+          dispute_reason: string | null
+          id: string
+          status: string
+          submission_id: string
+          teacher_id: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          created_at?: string
+          dispute_reason?: string | null
+          id?: string
+          status?: string
+          submission_id: string
+          teacher_id?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          created_at?: string
+          dispute_reason?: string | null
+          id?: string
+          status?: string
+          submission_id?: string
+          teacher_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grade_approvals_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: true
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hiring_pipeline: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          stage: Database["public"]["Enums"]["pipeline_stage"]
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          stage?: Database["public"]["Enums"]["pipeline_stage"]
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          stage?: Database["public"]["Enums"]["pipeline_stage"]
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      invitations: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          message: string | null
+          responded_at: string | null
+          role: string
+          status: Database["public"]["Enums"]["invitation_status"]
+          student_id: string
+          type: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          message?: string | null
+          responded_at?: string | null
+          role?: string
+          status?: Database["public"]["Enums"]["invitation_status"]
+          student_id: string
+          type?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          message?: string | null
+          responded_at?: string | null
+          role?: string
+          status?: Database["public"]["Enums"]["invitation_status"]
+          student_id?: string
+          type?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string
+          first_name: string
+          id: string
+          is_onboarded: boolean
+          last_name: string
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string
+          first_name?: string
+          id: string
+          is_onboarded?: boolean
+          last_name?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string
+          first_name?: string
+          id?: string
+          is_onboarded?: boolean
+          last_name?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      project_applications: {
+        Row: {
+          applied_at: string
+          challenge_id: string
+          cover_letter: string | null
+          id: string
+          reviewed_at: string | null
+          status: Database["public"]["Enums"]["application_status"]
+          student_id: string
+        }
+        Insert: {
+          applied_at?: string
+          challenge_id: string
+          cover_letter?: string | null
+          id?: string
+          reviewed_at?: string | null
+          status?: Database["public"]["Enums"]["application_status"]
+          student_id: string
+        }
+        Update: {
+          applied_at?: string
+          challenge_id?: string
+          cover_letter?: string | null
+          id?: string
+          reviewed_at?: string | null
+          status?: Database["public"]["Enums"]["application_status"]
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_applications_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_profiles: {
+        Row: {
+          batch: string | null
+          career_goals: string[] | null
+          created_at: string
+          current_semester: string | null
+          current_subjects: string[] | null
+          existing_skills: string[] | null
+          github_url: string | null
+          graduation_year: string | null
+          hours_per_week: string | null
+          id: string
+          interests: string[] | null
+          linkedin_url: string | null
+          portfolio_url: string | null
+          preferred_project_types: string[] | null
+          total_credits: number
+          university_name: string | null
+          university_program: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          batch?: string | null
+          career_goals?: string[] | null
+          created_at?: string
+          current_semester?: string | null
+          current_subjects?: string[] | null
+          existing_skills?: string[] | null
+          github_url?: string | null
+          graduation_year?: string | null
+          hours_per_week?: string | null
+          id?: string
+          interests?: string[] | null
+          linkedin_url?: string | null
+          portfolio_url?: string | null
+          preferred_project_types?: string[] | null
+          total_credits?: number
+          university_name?: string | null
+          university_program?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          batch?: string | null
+          career_goals?: string[] | null
+          created_at?: string
+          current_semester?: string | null
+          current_subjects?: string[] | null
+          existing_skills?: string[] | null
+          github_url?: string | null
+          graduation_year?: string | null
+          hours_per_week?: string | null
+          id?: string
+          interests?: string[] | null
+          linkedin_url?: string | null
+          portfolio_url?: string | null
+          preferred_project_types?: string[] | null
+          total_credits?: number
+          university_name?: string | null
+          university_program?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      submissions: {
+        Row: {
+          application_id: string
+          approved_at: string | null
+          challenge_id: string
+          company_feedback: string | null
+          created_at: string
+          files_url: string | null
+          grade: number | null
+          graded_at: string | null
+          id: string
+          notes: string | null
+          status: Database["public"]["Enums"]["submission_status"]
+          student_id: string
+          submitted_at: string | null
+          teacher_feedback: string | null
+          video_url: string | null
+        }
+        Insert: {
+          application_id: string
+          approved_at?: string | null
+          challenge_id: string
+          company_feedback?: string | null
+          created_at?: string
+          files_url?: string | null
+          grade?: number | null
+          graded_at?: string | null
+          id?: string
+          notes?: string | null
+          status?: Database["public"]["Enums"]["submission_status"]
+          student_id: string
+          submitted_at?: string | null
+          teacher_feedback?: string | null
+          video_url?: string | null
+        }
+        Update: {
+          application_id?: string
+          approved_at?: string | null
+          challenge_id?: string
+          company_feedback?: string | null
+          created_at?: string
+          files_url?: string | null
+          grade?: number | null
+          graded_at?: string | null
+          id?: string
+          notes?: string | null
+          status?: Database["public"]["Enums"]["submission_status"]
+          student_id?: string
+          submitted_at?: string | null
+          teacher_feedback?: string | null
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submissions_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "project_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submissions_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teacher_profiles: {
+        Row: {
+          created_at: string
+          department: string | null
+          designation: string | null
+          employee_id: string | null
+          id: string
+          institution_name: string | null
+          institution_type: string | null
+          specializations: string[] | null
+          subjects_taught: string[] | null
+          updated_at: string
+          user_id: string
+          years_of_experience: string | null
+        }
+        Insert: {
+          created_at?: string
+          department?: string | null
+          designation?: string | null
+          employee_id?: string | null
+          id?: string
+          institution_name?: string | null
+          institution_type?: string | null
+          specializations?: string[] | null
+          subjects_taught?: string[] | null
+          updated_at?: string
+          user_id: string
+          years_of_experience?: string | null
+        }
+        Update: {
+          created_at?: string
+          department?: string | null
+          designation?: string | null
+          employee_id?: string | null
+          id?: string
+          institution_name?: string | null
+          institution_type?: string | null
+          specializations?: string[] | null
+          subjects_taught?: string[] | null
+          updated_at?: string
+          user_id?: string
+          years_of_experience?: string | null
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_role: {
+        Args: { _user_id: string }
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "student" | "teacher" | "company"
+      application_status: "pending" | "approved" | "rejected" | "withdrawn"
+      challenge_status: "draft" | "active" | "closed" | "archived"
+      invitation_status: "pending" | "accepted" | "declined"
+      pipeline_stage:
+        | "shortlisted"
+        | "interviewing"
+        | "offer_sent"
+        | "hired"
+        | "rejected"
+      submission_status:
+        | "draft"
+        | "submitted"
+        | "graded"
+        | "approved"
+        | "disputed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +733,25 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["student", "teacher", "company"],
+      application_status: ["pending", "approved", "rejected", "withdrawn"],
+      challenge_status: ["draft", "active", "closed", "archived"],
+      invitation_status: ["pending", "accepted", "declined"],
+      pipeline_stage: [
+        "shortlisted",
+        "interviewing",
+        "offer_sent",
+        "hired",
+        "rejected",
+      ],
+      submission_status: [
+        "draft",
+        "submitted",
+        "graded",
+        "approved",
+        "disputed",
+      ],
+    },
   },
 } as const
