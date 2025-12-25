@@ -13,21 +13,21 @@ const Navbar = () => {
           
           <div className="hidden md:flex items-center gap-10">
             <Link 
-              to="/student" 
+              to="/student/onboarding" 
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-300 relative group"
             >
               For Students
               <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary rounded-full group-hover:w-full transition-all duration-300" />
             </Link>
             <Link 
-              to="/teacher" 
+              to="/teacher/onboarding" 
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-300 relative group"
             >
               For Educators
               <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary rounded-full group-hover:w-full transition-all duration-300" />
             </Link>
             <Link 
-              to="/company" 
+              to="/company/onboarding" 
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-300 relative group"
             >
               For Companies
