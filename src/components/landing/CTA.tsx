@@ -3,7 +3,7 @@ import { ArrowRight, Sparkles } from "lucide-react";
 
 const CTA = () => {
   return (
-    <section className="py-24 lg:py-32 bg-primary">
+    <section className="relative py-24 lg:py-32 bg-primary overflow-hidden">
       {/* Grid Pattern */}
       <div className="absolute inset-0 -z-10 opacity-10">
         <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
