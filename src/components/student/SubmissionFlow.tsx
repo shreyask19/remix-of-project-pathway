@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { 
   Upload, 
@@ -14,9 +15,11 @@ import {
 import { useMemo } from "react";
 import { useStudentSubmissions } from "@/hooks/useSubmissions";
 import { submissionFromDb, getGradeLabel } from "@/lib/transformers";
+import SubmissionModal from "./SubmissionModal";
 
 const SubmissionFlow = () => {
   const { submissions: rawSubmissions, isLoading, stats } = useStudentSubmissions();
+  const [showSubmissionModal, setShowSubmissionModal] = useState(false);
 
   // Transform DB data to UI format
   const submissions = useMemo(() => {
@@ -27,12 +30,15 @@ const SubmissionFlow = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "graded":
+        return <span className="status-badge bg-warning/10 text-warning">Pending Approval</span>;
       case "approved":
-        return <span className="status-badge bg-success/10 text-success">Graded</span>;
+        return <span className="status-badge bg-success/10 text-success">Approved</span>;
       case "submitted":
-        return <span className="status-badge bg-warning/10 text-warning">Under Review</span>;
+        return <span className="status-badge bg-primary/10 text-primary">Under Review</span>;
       case "draft":
         return <span className="status-badge bg-muted text-muted-foreground">Draft</span>;
+      case "disputed":
+        return <span className="status-badge bg-destructive/10 text-destructive">Disputed</span>;
       default:
         return <span className="status-badge bg-primary/10 text-primary">Submitted</span>;
     }
@@ -64,6 +70,13 @@ const SubmissionFlow = () => {
           <h2 className="text-xl font-bold text-foreground">My Submissions</h2>
           <p className="text-muted-foreground">Track your project submissions and company feedback</p>
         </div>
+        <Button 
+          className="rounded-2xl gap-2"
+          onClick={() => setShowSubmissionModal(true)}
+        >
+          <Upload className="w-4 h-4" />
+          New Submission
+        </Button>
       </div>
 
       {/* Submission Stats */}
@@ -125,6 +138,13 @@ const SubmissionFlow = () => {
             <p className="text-sm text-muted-foreground mb-4">
               Apply to a project and submit your work to see it here
             </p>
+            <Button 
+              className="rounded-2xl gap-2"
+              onClick={() => setShowSubmissionModal(true)}
+            >
+              <Upload className="w-4 h-4" />
+              Start Submission
+            </Button>
           </div>
         </div>
       )}
@@ -196,6 +216,32 @@ const SubmissionFlow = () => {
                       <p className="text-sm text-muted-foreground">{submission.companyFeedback}</p>
                     </div>
                   )}
+
+                  {/* Teacher Feedback for approved submissions */}
+                  {submission.status === "approved" && (
+                    <div className="p-4 rounded-2xl bg-primary/5 border border-primary/20 mt-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <CheckCircle className="w-4 h-4 text-primary" />
+                        <span className="text-sm font-medium text-foreground">Credits Awarded</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Your project has been verified by your teacher. Credits have been added to your account!
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Dispute indicator */}
+                  {submission.status === "disputed" && (
+                    <div className="p-4 rounded-2xl bg-destructive/5 border border-destructive/20 mt-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <MessageSquare className="w-4 h-4 text-destructive" />
+                        <span className="text-sm font-medium text-foreground">Grade Disputed</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Your teacher has flagged this grade for review. The company will reassess your submission.
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="lg:w-48 flex flex-col gap-2">
@@ -209,8 +255,12 @@ const SubmissionFlow = () => {
                   </div>
                   {submission.challenge?.credits && (
                     <div className="text-right">
-                      <p className="text-sm text-muted-foreground">Potential Credits</p>
-                      <p className="text-xl font-bold text-primary">{submission.challenge.credits}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {submission.status === "approved" ? "Credits Earned" : "Potential Credits"}
+                      </p>
+                      <p className={`text-xl font-bold ${submission.status === "approved" ? "text-success" : "text-primary"}`}>
+                        {submission.challenge.credits}
+                      </p>
                     </div>
                   )}
                 </div>
@@ -220,22 +270,11 @@ const SubmissionFlow = () => {
         })}
       </div>
 
-      {/* Upload New Submission CTA */}
-      <div className="dashboard-card border-dashed border-2 border-border bg-muted/30">
-        <div className="text-center py-8">
-          <div className="w-16 h-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4">
-            <Upload className="w-8 h-8" />
-          </div>
-          <h3 className="font-bold text-foreground mb-2">Submit a New Project</h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            Upload your project files, GitHub link, and video explanation
-          </p>
-          <Button className="rounded-2xl gap-2">
-            <Upload className="w-4 h-4" />
-            Start Submission
-          </Button>
-        </div>
-      </div>
+      {/* Submission Modal */}
+      <SubmissionModal 
+        open={showSubmissionModal} 
+        onOpenChange={setShowSubmissionModal} 
+      />
     </div>
   );
 };

@@ -1,12 +1,15 @@
+import { useState } from "react";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Clock, CheckCircle, Circle, Upload, Briefcase } from "lucide-react";
 import { useActiveProjects } from "@/hooks/useActiveProjects";
 import { Loader2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import SubmissionModal from "./SubmissionModal";
 
 const ActiveProject = () => {
   const { activeProject, isLoading } = useActiveProjects();
+  const [showSubmissionModal, setShowSubmissionModal] = useState(false);
 
   if (isLoading) {
     return (
@@ -46,6 +49,10 @@ const ActiveProject = () => {
     { title: "Submitted", completed: activeProject.progress >= 70, current: activeProject.progress >= 30 && activeProject.progress < 70 },
     { title: "Graded", completed: activeProject.progress === 100, current: activeProject.progress >= 70 && activeProject.progress < 100 },
   ];
+
+  const canSubmit = activeProject.submissionStatus !== "submitted" && 
+                   activeProject.submissionStatus !== "graded" && 
+                   activeProject.submissionStatus !== "approved";
 
   return (
     <div className="dashboard-card">
@@ -91,6 +98,19 @@ const ActiveProject = () => {
               {activeProject.difficulty}
             </span>
             <span className="text-sm font-medium text-primary">{activeProject.credits} Credits</span>
+            {activeProject.submissionStatus && (
+              <span className={`text-xs px-2 py-1 rounded-lg ${
+                activeProject.submissionStatus === "draft" ? "bg-muted text-muted-foreground" :
+                activeProject.submissionStatus === "submitted" ? "bg-primary/10 text-primary" :
+                activeProject.submissionStatus === "graded" ? "bg-warning/10 text-warning" :
+                "bg-success/10 text-success"
+              }`}>
+                {activeProject.submissionStatus === "draft" ? "Draft in Progress" :
+                 activeProject.submissionStatus === "submitted" ? "Under Review" :
+                 activeProject.submissionStatus === "graded" ? "Pending Approval" :
+                 "Approved"}
+              </span>
+            )}
           </div>
 
           <div className="flex items-center justify-between text-sm mb-2">
@@ -122,14 +142,25 @@ const ActiveProject = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            <Button className="rounded-2xl flex-1">Resume Work</Button>
-            <Button variant="outline" className="rounded-2xl gap-2">
-              <Upload className="w-4 h-4" />
-              Submit
-            </Button>
+            <Button className="rounded-2xl flex-1" variant="outline">Resume Work</Button>
+            {canSubmit && (
+              <Button 
+                className="rounded-2xl gap-2 flex-1"
+                onClick={() => setShowSubmissionModal(true)}
+              >
+                <Upload className="w-4 h-4" />
+                Submit
+              </Button>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Submission Modal */}
+      <SubmissionModal 
+        open={showSubmissionModal} 
+        onOpenChange={setShowSubmissionModal} 
+      />
     </div>
   );
 };

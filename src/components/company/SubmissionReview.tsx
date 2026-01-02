@@ -15,7 +15,9 @@ import {
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { useCompanySubmissions } from "@/hooks/useSubmissions";
+import { useGradingWorkflow } from "@/hooks/useSubmissionWorkflow";
 import { submissionFromDb, getGradeLabel, getLabelToGrade, type Submission } from "@/lib/transformers";
+import AuthenticityIndicators from "@/components/student/AuthenticityIndicators";
 
 const SubmissionReview = () => {
   const [activeFilter, setActiveFilter] = useState("all");
@@ -28,9 +30,10 @@ const SubmissionReview = () => {
     submissions: rawSubmissions, 
     isLoading, 
     stats,
-    gradeSubmission,
     startReview 
   } = useCompanySubmissions(activeFilter !== "all" ? activeFilter : undefined);
+
+  const { gradeSubmission } = useGradingWorkflow();
 
   // Transform DB data to UI format
   const submissions = useMemo(() => {
@@ -295,9 +298,17 @@ const SubmissionReview = () => {
 
               {/* Grading Panel */}
               {selectedSubmission === submission.id && submission.status === "submitted" && (
-                <div className="mt-4 pt-4 border-t border-border">
-                  <h4 className="font-medium text-foreground mb-4">Grade this submission</h4>
-                  <div className="grid md:grid-cols-4 gap-3 mb-4">
+                <div className="mt-4 pt-4 border-t border-border space-y-4">
+                  <h4 className="font-medium text-foreground">Grade this submission</h4>
+                  
+                  {/* Authenticity Indicators */}
+                  <AuthenticityIndicators 
+                    githubUrl={submission.filesUrl} 
+                    submittedAt={submission.submittedAt}
+                  />
+
+                  {/* Grade Selection */}
+                  <div className="grid md:grid-cols-4 gap-3">
                     {["Excellent", "Satisfied", "Average", "Dissatisfied"].map((grade) => (
                       <button
                         key={grade}
@@ -317,7 +328,9 @@ const SubmissionReview = () => {
                       </button>
                     ))}
                   </div>
-                  <div className="mb-4">
+                  
+                  {/* Feedback */}
+                  <div>
                     <label className="block text-sm font-medium text-foreground mb-2">Feedback *</label>
                     <textarea
                       rows={3}
@@ -327,6 +340,8 @@ const SubmissionReview = () => {
                       className="w-full px-4 py-3 bg-secondary rounded-xl text-foreground border-0 outline-none focus:ring-2 focus:ring-primary/20 resize-none"
                     />
                   </div>
+                  
+                  {/* Actions */}
                   <div className="flex items-center gap-3">
                     <Button 
                       variant="outline" 
