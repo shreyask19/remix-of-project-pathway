@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { 
@@ -23,19 +23,18 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const StudentOnboarding = () => {
   const navigate = useNavigate();
-  const { user, completeOnboarding } = useAuth();
-  const { saveProfile } = useStudentProfile();
+  const { user, profile, completeOnboarding } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 5;
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Pre-fill from auth profile
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -57,6 +56,19 @@ const StudentOnboarding = () => {
     githubUrl: "",
     portfolioUrl: "",
   });
+
+  // Pre-fill user data when profile loads
+  useEffect(() => {
+    if (profile) {
+      setFormData(prev => ({
+        ...prev,
+        firstName: profile.firstName || prev.firstName,
+        lastName: profile.lastName || prev.lastName,
+        email: profile.email || prev.email,
+        phone: profile.phone || prev.phone,
+      }));
+    }
+  }, [profile]);
 
   const [customSubject, setCustomSubject] = useState("");
   const [customSkill, setCustomSkill] = useState("");
@@ -157,6 +169,20 @@ const StudentOnboarding = () => {
       if (!formData.batch) newErrors.batch = "Batch is required";
       if (!formData.graduationYear) newErrors.graduationYear = "Graduation year is required";
     }
+
+    if (step === 3) {
+      if (formData.existingSkills.length === 0) newErrors.existingSkills = "Select at least one skill";
+    }
+
+    if (step === 4) {
+      if (formData.interests.length === 0) newErrors.interests = "Select at least one interest";
+      if (formData.careerGoals.length === 0) newErrors.careerGoals = "Select at least one career goal";
+    }
+
+    if (step === 5) {
+      if (formData.preferredProjectTypes.length === 0) newErrors.preferredProjectTypes = "Select at least one project type";
+      if (!formData.hoursPerWeek) newErrors.hoursPerWeek = "Select hours per week";
+    }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -171,11 +197,11 @@ const StudentOnboarding = () => {
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
     } else {
-      // Complete onboarding - save to database
+      // Complete onboarding - use atomic RPC
       setIsSubmitting(true);
       try {
         // Update profile with first/last name and phone
-        await supabase
+        const { error: profileError } = await supabase
           .from("profiles")
           .update({
             first_name: formData.firstName,
@@ -184,32 +210,42 @@ const StudentOnboarding = () => {
           })
           .eq("id", user?.id);
 
-        // Save student profile
-        await saveProfile.mutateAsync({
-          universityName: formData.universityName,
-          universityProgram: formData.universityProgram,
-          batch: formData.batch,
-          graduationYear: formData.graduationYear,
-          currentSemester: formData.currentSemester,
-          currentSubjects: formData.currentSubjects,
-          existingSkills: formData.existingSkills,
-          interests: formData.interests,
-          careerGoals: formData.careerGoals,
-          preferredProjectTypes: formData.preferredProjectTypes,
-          linkedinUrl: formData.linkedinUrl,
-          githubUrl: formData.githubUrl,
-          portfolioUrl: formData.portfolioUrl,
-          hoursPerWeek: formData.hoursPerWeek,
-        });
+        if (profileError) throw profileError;
 
-        // Mark onboarding as complete
-        await completeOnboarding();
+        // Use atomic RPC for student onboarding
+        const { data: rpcResult, error: rpcError } = await supabase.rpc(
+          "complete_student_onboarding",
+          {
+            p_user_id: user?.id,
+            p_university_name: formData.universityName,
+            p_university_program: formData.universityProgram,
+            p_batch: formData.batch,
+            p_graduation_year: formData.graduationYear,
+            p_current_semester: formData.currentSemester || null,
+            p_current_subjects: formData.currentSubjects,
+            p_existing_skills: formData.existingSkills,
+            p_interests: formData.interests,
+            p_career_goals: formData.careerGoals,
+            p_preferred_project_types: formData.preferredProjectTypes,
+            p_linkedin_url: formData.linkedinUrl || null,
+            p_github_url: formData.githubUrl || null,
+            p_portfolio_url: formData.portfolioUrl || null,
+            p_hours_per_week: formData.hoursPerWeek || null,
+          }
+        );
+
+        if (rpcError) throw rpcError;
+
+        const result = rpcResult as { success: boolean; error?: string };
+        if (!result.success) {
+          throw new Error(result.error || "Onboarding failed");
+        }
         
         toast.success(`Welcome, ${formData.firstName}! Let's start building.`);
         navigate("/student");
-      } catch (error) {
+      } catch (error: any) {
         console.error("Onboarding error:", error);
-        toast.error("Failed to complete onboarding. Please try again.");
+        toast.error(`Failed to complete onboarding: ${error.message || "Please try again."}`);
       } finally {
         setIsSubmitting(false);
       }
@@ -303,6 +339,7 @@ const StudentOnboarding = () => {
             <div>
               <label className="block text-sm font-medium text-foreground mb-2">
                 Email Address <span className="text-destructive">*</span>
+                {profile?.email && <span className="text-muted-foreground font-normal ml-2">(verified)</span>}
               </label>
               <input
                 type="email"
@@ -310,6 +347,7 @@ const StudentOnboarding = () => {
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 placeholder="you@university.edu"
                 className={inputClass("email")}
+                readOnly={!!profile?.email}
               />
               {errors.email && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.email}</p>}
             </div>
@@ -430,7 +468,7 @@ const StudentOnboarding = () => {
                     className={`px-3 py-2 rounded-xl text-sm transition-all ${
                       formData.currentSubjects.includes(subject)
                         ? "bg-primary text-primary-foreground shadow-md"
-                        : "bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                        : "bg-secondary text-muted-foreground hover:bg-secondary/80"
                     }`}
                   >
                     {subject}
@@ -442,20 +480,26 @@ const StudentOnboarding = () => {
                   type="text"
                   value={customSubject}
                   onChange={(e) => setCustomSubject(e.target.value)}
-                  placeholder="Add custom subject..."
-                  className="flex-1 px-4 py-2.5 bg-secondary/50 rounded-xl text-foreground text-sm border-0 outline-none focus:ring-2 focus:ring-primary/20"
-                  onKeyPress={(e) => e.key === "Enter" && addCustomItem("currentSubjects", customSubject, setCustomSubject)}
+                  placeholder="Add custom subject"
+                  className="flex-1 px-3 py-2 bg-secondary/50 rounded-xl text-sm border-0 outline-none focus:ring-2 focus:ring-primary/20"
+                  onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addCustomItem("currentSubjects", customSubject, setCustomSubject))}
                 />
-                <Button variant="outline" size="sm" className="rounded-xl" onClick={() => addCustomItem("currentSubjects", customSubject, setCustomSubject)}>
+                <Button 
+                  type="button" 
+                  size="sm" 
+                  variant="outline" 
+                  className="rounded-xl"
+                  onClick={() => addCustomItem("currentSubjects", customSubject, setCustomSubject)}
+                >
                   <Plus className="w-4 h-4" />
                 </Button>
               </div>
               {formData.currentSubjects.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-3">
-                  {formData.currentSubjects.map((subject) => (
-                    <span key={subject} className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-primary/10 text-primary text-sm">
+                  {formData.currentSubjects.filter(s => !commonSubjects.includes(s)).map((subject) => (
+                    <span key={subject} className="px-3 py-1.5 rounded-xl bg-primary/10 text-primary text-sm flex items-center gap-2">
                       {subject}
-                      <button type="button" onClick={() => toggleArrayItem("currentSubjects", subject)}>
+                      <button onClick={() => toggleArrayItem("currentSubjects", subject)}>
                         <X className="w-3 h-3" />
                       </button>
                     </span>
@@ -465,7 +509,9 @@ const StudentOnboarding = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-foreground mb-3">Technical Skills</label>
+              <label className="block text-sm font-medium text-foreground mb-3">
+                Existing Skills <span className="text-destructive">*</span>
+              </label>
               <div className="flex flex-wrap gap-2 mb-3">
                 {skillOptions.map((skill) => (
                   <button
@@ -475,7 +521,7 @@ const StudentOnboarding = () => {
                     className={`px-3 py-2 rounded-xl text-sm transition-all ${
                       formData.existingSkills.includes(skill)
                         ? "bg-primary text-primary-foreground shadow-md"
-                        : "bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                        : "bg-secondary text-muted-foreground hover:bg-secondary/80"
                     }`}
                   >
                     {skill}
@@ -487,14 +533,21 @@ const StudentOnboarding = () => {
                   type="text"
                   value={customSkill}
                   onChange={(e) => setCustomSkill(e.target.value)}
-                  placeholder="Add custom skill..."
-                  className="flex-1 px-4 py-2.5 bg-secondary/50 rounded-xl text-foreground text-sm border-0 outline-none focus:ring-2 focus:ring-primary/20"
-                  onKeyPress={(e) => e.key === "Enter" && addCustomItem("existingSkills", customSkill, setCustomSkill)}
+                  placeholder="Add custom skill"
+                  className="flex-1 px-3 py-2 bg-secondary/50 rounded-xl text-sm border-0 outline-none focus:ring-2 focus:ring-primary/20"
+                  onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addCustomItem("existingSkills", customSkill, setCustomSkill))}
                 />
-                <Button variant="outline" size="sm" className="rounded-xl" onClick={() => addCustomItem("existingSkills", customSkill, setCustomSkill)}>
+                <Button 
+                  type="button" 
+                  size="sm" 
+                  variant="outline" 
+                  className="rounded-xl"
+                  onClick={() => addCustomItem("existingSkills", customSkill, setCustomSkill)}
+                >
                   <Plus className="w-4 h-4" />
                 </Button>
               </div>
+              {errors.existingSkills && <p className="text-xs text-destructive mt-2 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.existingSkills}</p>}
             </div>
           </div>
         );
@@ -507,11 +560,13 @@ const StudentOnboarding = () => {
                 <Heart className="w-8 h-8" />
               </div>
               <h2 className="text-2xl font-bold text-foreground">Interests & Goals</h2>
-              <p className="text-muted-foreground mt-2">Help us personalize your experience</p>
+              <p className="text-muted-foreground mt-2">What excites you and where do you want to go?</p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-foreground mb-3">Areas of Interest</label>
+              <label className="block text-sm font-medium text-foreground mb-3">
+                Areas of Interest <span className="text-destructive">*</span>
+              </label>
               <div className="flex flex-wrap gap-2 mb-3">
                 {interestOptions.map((interest) => (
                   <button
@@ -521,7 +576,7 @@ const StudentOnboarding = () => {
                     className={`px-3 py-2 rounded-xl text-sm transition-all ${
                       formData.interests.includes(interest)
                         ? "bg-primary text-primary-foreground shadow-md"
-                        : "bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                        : "bg-secondary text-muted-foreground hover:bg-secondary/80"
                     }`}
                   >
                     {interest}
@@ -533,18 +588,27 @@ const StudentOnboarding = () => {
                   type="text"
                   value={customInterest}
                   onChange={(e) => setCustomInterest(e.target.value)}
-                  placeholder="Add custom interest..."
-                  className="flex-1 px-4 py-2.5 bg-secondary/50 rounded-xl text-foreground text-sm border-0 outline-none focus:ring-2 focus:ring-primary/20"
-                  onKeyPress={(e) => e.key === "Enter" && addCustomItem("interests", customInterest, setCustomInterest)}
+                  placeholder="Add custom interest"
+                  className="flex-1 px-3 py-2 bg-secondary/50 rounded-xl text-sm border-0 outline-none focus:ring-2 focus:ring-primary/20"
+                  onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addCustomItem("interests", customInterest, setCustomInterest))}
                 />
-                <Button variant="outline" size="sm" className="rounded-xl" onClick={() => addCustomItem("interests", customInterest, setCustomInterest)}>
+                <Button 
+                  type="button" 
+                  size="sm" 
+                  variant="outline" 
+                  className="rounded-xl"
+                  onClick={() => addCustomItem("interests", customInterest, setCustomInterest)}
+                >
                   <Plus className="w-4 h-4" />
                 </Button>
               </div>
+              {errors.interests && <p className="text-xs text-destructive mt-2 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.interests}</p>}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-foreground mb-3">Career Goals</label>
+              <label className="block text-sm font-medium text-foreground mb-3">
+                Career Goals <span className="text-destructive">*</span>
+              </label>
               <div className="flex flex-wrap gap-2">
                 {careerGoalOptions.map((goal) => (
                   <button
@@ -554,34 +618,14 @@ const StudentOnboarding = () => {
                     className={`px-3 py-2 rounded-xl text-sm transition-all ${
                       formData.careerGoals.includes(goal)
                         ? "bg-primary text-primary-foreground shadow-md"
-                        : "bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                        : "bg-secondary text-muted-foreground hover:bg-secondary/80"
                     }`}
                   >
                     {goal}
                   </button>
                 ))}
               </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-3">Preferred Project Types</label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {projectTypeOptions.map((type) => (
-                  <button
-                    key={type.id}
-                    type="button"
-                    onClick={() => toggleArrayItem("preferredProjectTypes", type.id)}
-                    className={`flex items-center gap-2 p-3 rounded-xl text-sm transition-all ${
-                      formData.preferredProjectTypes.includes(type.id)
-                        ? "bg-primary text-primary-foreground shadow-md"
-                        : "bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground"
-                    }`}
-                  >
-                    {type.icon}
-                    {type.label}
-                  </button>
-                ))}
-              </div>
+              {errors.careerGoals && <p className="text-xs text-destructive mt-2 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.careerGoals}</p>}
             </div>
           </div>
         );
@@ -591,76 +635,94 @@ const StudentOnboarding = () => {
           <div className="space-y-6 animate-fade-in">
             <div className="text-center mb-8">
               <div className="w-16 h-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4">
-                <Globe className="w-8 h-8" />
+                <Target className="w-8 h-8" />
               </div>
-              <h2 className="text-2xl font-bold text-foreground">Online Presence</h2>
-              <p className="text-muted-foreground mt-2">Connect your professional profiles</p>
+              <h2 className="text-2xl font-bold text-foreground">Project Preferences</h2>
+              <p className="text-muted-foreground mt-2">Help us match you with the right projects</p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2">Hours Available Per Week</label>
-              <select
-                value={formData.hoursPerWeek}
-                onChange={(e) => setFormData({ ...formData, hoursPerWeek: e.target.value })}
-                className={inputClass("hoursPerWeek")}
-              >
-                <option value="">Select availability</option>
-                <option value="5-10">5-10 hours/week</option>
-                <option value="10-15">10-15 hours/week</option>
-                <option value="15-20">15-20 hours/week</option>
-                <option value="20+">20+ hours/week</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                <Linkedin className="w-4 h-4 inline mr-2" />
-                LinkedIn Profile
+              <label className="block text-sm font-medium text-foreground mb-3">
+                Preferred Project Types <span className="text-destructive">*</span>
               </label>
-              <input
-                type="url"
-                value={formData.linkedinUrl}
-                onChange={(e) => setFormData({ ...formData, linkedinUrl: e.target.value })}
-                placeholder="https://linkedin.com/in/yourprofile"
-                className={inputClass("linkedinUrl")}
-              />
+              <div className="grid md:grid-cols-2 gap-3">
+                {projectTypeOptions.map((type) => (
+                  <button
+                    key={type.id}
+                    type="button"
+                    onClick={() => toggleArrayItem("preferredProjectTypes", type.id)}
+                    className={`p-4 rounded-xl text-left transition-all flex items-center gap-3 ${
+                      formData.preferredProjectTypes.includes(type.id)
+                        ? "bg-primary text-primary-foreground shadow-md"
+                        : "bg-secondary text-muted-foreground hover:bg-secondary/80"
+                    }`}
+                  >
+                    {type.icon}
+                    <span>{type.label}</span>
+                    {formData.preferredProjectTypes.includes(type.id) && (
+                      <Check className="w-4 h-4 ml-auto" />
+                    )}
+                  </button>
+                ))}
+              </div>
+              {errors.preferredProjectTypes && <p className="text-xs text-destructive mt-2 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.preferredProjectTypes}</p>}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                <Github className="w-4 h-4 inline mr-2" />
-                GitHub Profile
+              <label className="block text-sm font-medium text-foreground mb-3">
+                Available Hours per Week <span className="text-destructive">*</span>
               </label>
-              <input
-                type="url"
-                value={formData.githubUrl}
-                onChange={(e) => setFormData({ ...formData, githubUrl: e.target.value })}
-                placeholder="https://github.com/yourusername"
-                className={inputClass("githubUrl")}
-              />
+              <div className="grid grid-cols-4 gap-3">
+                {["5-10", "10-15", "15-20", "20+"].map((hours) => (
+                  <button
+                    key={hours}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, hoursPerWeek: hours })}
+                    className={`p-3 rounded-xl text-center transition-all ${
+                      formData.hoursPerWeek === hours
+                        ? "bg-primary text-primary-foreground shadow-md"
+                        : "bg-secondary text-muted-foreground hover:bg-secondary/80"
+                    }`}
+                  >
+                    <Clock className="w-5 h-5 mx-auto mb-1" />
+                    <span className="text-sm font-medium">{hours} hrs</span>
+                  </button>
+                ))}
+              </div>
+              {errors.hoursPerWeek && <p className="text-xs text-destructive mt-2 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.hoursPerWeek}</p>}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                <Globe className="w-4 h-4 inline mr-2" />
-                Portfolio Website
-              </label>
-              <input
-                type="url"
-                value={formData.portfolioUrl}
-                onChange={(e) => setFormData({ ...formData, portfolioUrl: e.target.value })}
-                placeholder="https://yourportfolio.com"
-                className={inputClass("portfolioUrl")}
-              />
-            </div>
-
-            <div className="p-4 rounded-2xl bg-success/10 border border-success/20">
-              <div className="flex items-start gap-3">
-                <Check className="w-5 h-5 text-success mt-0.5" />
-                <div>
-                  <h4 className="font-medium text-foreground">Almost done!</h4>
-                  <p className="text-sm text-muted-foreground">Your profile will be used to recommend personalized projects and connect you with companies looking for your skills.</p>
-                </div>
+            <div className="space-y-4">
+              <label className="block text-sm font-medium text-foreground">Professional Links (Optional)</label>
+              <div className="relative">
+                <Linkedin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input
+                  type="url"
+                  value={formData.linkedinUrl}
+                  onChange={(e) => setFormData({ ...formData, linkedinUrl: e.target.value })}
+                  placeholder="https://linkedin.com/in/yourprofile"
+                  className="w-full pl-10 pr-4 py-3.5 bg-secondary/50 rounded-xl text-foreground border-0 outline-none focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+              <div className="relative">
+                <Github className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input
+                  type="url"
+                  value={formData.githubUrl}
+                  onChange={(e) => setFormData({ ...formData, githubUrl: e.target.value })}
+                  placeholder="https://github.com/yourusername"
+                  className="w-full pl-10 pr-4 py-3.5 bg-secondary/50 rounded-xl text-foreground border-0 outline-none focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+              <div className="relative">
+                <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input
+                  type="url"
+                  value={formData.portfolioUrl}
+                  onChange={(e) => setFormData({ ...formData, portfolioUrl: e.target.value })}
+                  placeholder="https://yourportfolio.com"
+                  className="w-full pl-10 pr-4 py-3.5 bg-secondary/50 rounded-xl text-foreground border-0 outline-none focus:ring-2 focus:ring-primary/20"
+                />
               </div>
             </div>
           </div>
@@ -673,39 +735,24 @@ const StudentOnboarding = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Background */}
-      <div className="absolute inset-0 -z-10 overflow-hidden">
-        <div className="absolute top-20 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-20 right-1/4 w-80 h-80 bg-primary/5 rounded-full blur-3xl" />
-      </div>
-
       {/* Progress Header */}
-      <div className="border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4 max-w-3xl">
+      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-lg border-b border-border">
+        <div className="max-w-3xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between mb-3">
-            <a href="/" className="flex items-center gap-2 text-foreground font-bold">
-              <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center">
-                <GraduationCap className="w-4 h-4 text-primary-foreground" />
-              </div>
-              <span className="font-display">Heuristic</span>
-            </a>
-            <span className="text-sm text-muted-foreground">
-              Step {currentStep} of {totalSteps}
-            </span>
+            <span className="text-sm text-muted-foreground">Step {currentStep} of {totalSteps}</span>
+            <span className="text-sm font-medium text-primary">{Math.round((currentStep / totalSteps) * 100)}% Complete</span>
           </div>
-          <Progress value={(currentStep / totalSteps) * 100} className="h-1.5" />
+          <Progress value={(currentStep / totalSteps) * 100} className="h-2" />
         </div>
       </div>
 
-      {/* Form Content */}
-      <div className="flex-1 container mx-auto px-4 py-8 max-w-2xl">
-        {renderStep()}
-      </div>
+      {/* Main Content */}
+      <div className="flex-1 flex items-center justify-center px-4 py-8">
+        <div className="w-full max-w-2xl">
+          {renderStep()}
 
-      {/* Navigation Footer */}
-      <div className="border-t border-border bg-background/80 backdrop-blur-sm sticky bottom-0">
-        <div className="container mx-auto px-4 py-4 max-w-2xl">
-          <div className="flex items-center justify-between">
+          {/* Navigation */}
+          <div className="flex items-center justify-between mt-10">
             <Button
               variant="ghost"
               onClick={handleBack}
@@ -715,32 +762,25 @@ const StudentOnboarding = () => {
               <ArrowLeft className="w-4 h-4" />
               Back
             </Button>
-
-            <div className="flex gap-2">
-              {[...Array(totalSteps)].map((_, i) => (
-                <div
-                  key={i}
-                  className={`w-2 h-2 rounded-full transition-all ${
-                    i + 1 === currentStep
-                      ? "w-6 bg-primary"
-                      : i + 1 < currentStep
-                      ? "bg-primary"
-                      : "bg-border"
-                  }`}
-                />
-              ))}
-            </div>
-
-            <Button onClick={handleNext} className="gap-2 rounded-xl" disabled={isSubmitting}>
+            <Button
+              onClick={handleNext}
+              disabled={isSubmitting}
+              className="gap-2 rounded-xl min-w-[140px]"
+            >
               {isSubmitting ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
                   Saving...
                 </>
+              ) : currentStep === totalSteps ? (
+                <>
+                  Complete
+                  <Check className="w-4 h-4" />
+                </>
               ) : (
                 <>
-                  {currentStep === totalSteps ? "Complete" : "Continue"}
-                  {currentStep === totalSteps ? <Check className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
+                  Continue
+                  <ArrowRight className="w-4 h-4" />
                 </>
               )}
             </Button>
