@@ -76,23 +76,53 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchUserData = async (userId: string) => {
     try {
-      // Fetch user role from database
-      const { data: roleData } = await supabase
+      // Fetch user role from database - expect exactly one row per user
+      const { data: roleData, error: roleError } = await supabase
         .from("user_roles")
         .select("role")
         .eq("user_id", userId)
         .maybeSingle();
 
-      if (roleData) {
+      if (roleError) {
+        console.error("[AuthContext] Role fetch error:", roleError);
+        setRoleState(null);
+      } else if (roleData) {
         setRoleState(roleData.role as AppRole);
+      } else {
+        // No role exists - user needs to select one at /get-started
+        setRoleState(null);
       }
 
       // Fetch profile from database (source of truth)
-      const { data: profileData } = await supabase
+      let { data: profileData, error: profileError } = await supabase
         .from("profiles")
         .select("id, first_name, last_name, email, phone, avatar_url, is_onboarded, institution_id")
         .eq("id", userId)
         .maybeSingle();
+
+      // If profile doesn't exist, create it (handles case where trigger on auth.users was removed)
+      if (!profileData && !profileError) {
+        const { data: userData } = await supabase.auth.getUser();
+        if (userData?.user) {
+          const { data: newProfile, error: insertError } = await supabase
+            .from("profiles")
+            .insert({
+              id: userId,
+              first_name: userData.user.user_metadata?.first_name || '',
+              last_name: userData.user.user_metadata?.last_name || '',
+              email: userData.user.email || '',
+              is_onboarded: false,
+            })
+            .select()
+            .single();
+          
+          if (insertError) {
+            console.error("[AuthContext] Profile creation error:", insertError);
+          } else {
+            profileData = newProfile;
+          }
+        }
+      }
 
       if (profileData) {
         setIsOnboarded(profileData.is_onboarded);
@@ -105,9 +135,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           avatarUrl: profileData.avatar_url,
           institutionId: profileData.institution_id,
         });
+      } else {
+        // No profile and couldn't create - set safe defaults
+        setIsOnboarded(false);
+        setProfile(null);
       }
     } catch (error) {
-      console.error("Error fetching user data:", error);
+      console.error("[AuthContext] Error fetching user data:", error);
+      // On error, reset to safe state - will redirect to /get-started
+      setRoleState(null);
+      setIsOnboarded(false);
+      setProfile(null);
     } finally {
       setIsLoading(false);
     }
@@ -181,16 +219,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!user) return { error: new Error("Not authenticated") };
 
     try {
+      // Use upsert to ensure exactly one role per user (replaces existing role)
       const { error } = await supabase
         .from("user_roles")
-        .insert({ user_id: user.id, role: newRole });
+        .upsert(
+          { user_id: user.id, role: newRole },
+          { onConflict: 'user_id' }
+        );
 
       if (error) throw error;
       
+      // Update local state immediately
       setRoleState(newRole);
+      
       return { error: null };
     } catch (error) {
-      console.error("Set role error:", error);
+      console.error("[AuthContext] Set role error:", error);
       return { error: error as Error };
     }
   };
