@@ -12,9 +12,10 @@ import {
   Flag,
   CheckSquare,
   Square,
-  Minus
+  Minus,
+  Loader2
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -24,156 +25,85 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-
-interface PendingGrade {
-  id: number;
-  student: string;
-  project: string;
-  company: string;
-  companyGrade: string;
-  credits: number;
-  feedback: string;
-  submittedAt: string;
-  status: "pending" | "approved" | "disputed";
-  selected?: boolean;
-}
-
-interface ExemptionRequest {
-  id: number;
-  student: string;
-  credits: number;
-  requiredCredits: number;
-  projectsCompleted: number;
-  averageGrade: string;
-  requestedAt: string;
-  reason: string;
-  warning?: string;
-  status: "pending" | "approved" | "rejected";
-  selected?: boolean;
-}
+import { useTeacherSubmissions, useExemptionRequests } from "@/hooks/useSubmissions";
+import { getGradeLabel, exemptionRequestFromDb } from "@/lib/transformers";
 
 const AssessmentApproval = () => {
   const [activeTab, setActiveTab] = useState<"grades" | "exemptions">("grades");
-  const [disputeOpen, setDisputeOpen] = useState<number | null>(null);
+  const [disputeOpen, setDisputeOpen] = useState<string | null>(null);
   const [disputeReason, setDisputeReason] = useState("");
+  const [selectedGrades, setSelectedGrades] = useState<Set<string>>(new Set());
+  const [selectedExemptions, setSelectedExemptions] = useState<Set<string>>(new Set());
   const [showBulkConfirm, setShowBulkConfirm] = useState<"approve" | "reject" | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
 
-  const [pendingGrades, setPendingGrades] = useState<PendingGrade[]>([
-    {
-      id: 1,
-      student: "Sarah Johnson",
-      project: "Marketing Strategy Analysis",
-      company: "Spotify",
-      companyGrade: "Excellent",
-      credits: 60,
-      feedback: "Outstanding strategic thinking and customer acquisition plan. Highly impressive work that demonstrates deep understanding of market dynamics.",
-      submittedAt: "2 days ago",
-      status: "pending",
-      selected: false,
-    },
-    {
-      id: 2,
-      student: "Marcus Reed",
-      project: "Backend Architecture Design",
-      company: "Google",
-      companyGrade: "Satisfied",
-      credits: 85,
-      feedback: "Good implementation of microservices pattern. Could improve on documentation and error handling.",
-      submittedAt: "3 days ago",
-      status: "pending",
-      selected: false,
-    },
-    {
-      id: 3,
-      student: "David Kim",
-      project: "React Component Library",
-      company: "Airbnb",
-      companyGrade: "Excellent",
-      credits: 70,
-      feedback: "Exceptional attention to accessibility and reusability. Components are well-documented and follow best practices.",
-      submittedAt: "4 days ago",
-      status: "pending",
-      selected: false,
-    },
-    {
-      id: 4,
-      student: "Emma Wilson",
-      project: "Data Pipeline Optimization",
-      company: "Netflix",
-      companyGrade: "Excellent",
-      credits: 80,
-      feedback: "Excellent work on optimizing data flows. Reduced processing time by 40%.",
-      submittedAt: "5 days ago",
-      status: "pending",
-      selected: false,
-    },
-    {
-      id: 5,
-      student: "Alex Chen",
-      project: "Mobile App UI Design",
-      company: "Tesla",
-      companyGrade: "Satisfied",
-      credits: 55,
-      feedback: "Good visual design with room for improvement in user flow optimization.",
-      submittedAt: "6 days ago",
-      status: "pending",
-      selected: false,
-    },
-  ]);
+  const { 
+    pendingGrades: rawPendingGrades, 
+    gradesLoading, 
+    approveGrade, 
+    disputeGrade 
+  } = useTeacherSubmissions();
 
-  const [exemptionRequests, setExemptionRequests] = useState<ExemptionRequest[]>([
-    {
-      id: 1,
-      student: "Marcus Reed",
-      credits: 320,
-      requiredCredits: 300,
-      projectsCompleted: 10,
-      averageGrade: "Excellent",
-      requestedAt: "1 day ago",
-      reason: "Completed all required projects with high performance. Seeking exemption from final written exam.",
-      status: "pending",
-      selected: false,
-    },
-    {
-      id: 2,
-      student: "Alex Chen",
-      credits: 298,
-      requiredCredits: 300,
-      projectsCompleted: 8,
-      averageGrade: "Excellent",
-      requestedAt: "3 days ago",
-      reason: "Near threshold with consistent excellent performance. One more project in progress.",
-      warning: "2 credits below threshold",
-      status: "pending",
-      selected: false,
-    },
-    {
-      id: 3,
-      student: "Priya Sharma",
-      credits: 315,
-      requiredCredits: 300,
-      projectsCompleted: 9,
-      averageGrade: "Excellent",
-      requestedAt: "2 days ago",
-      reason: "Exceeded credit requirement with strong performance across all projects.",
-      status: "pending",
-      selected: false,
-    },
-  ]);
+  const {
+    requests: rawExemptionRequests,
+    isLoading: exemptionsLoading,
+    approveExemption,
+    rejectExemption,
+  } = useExemptionRequests();
 
-  // Selection helpers
-  const pendingGradesFiltered = pendingGrades.filter(g => g.status === "pending");
+  // Transform pending grades
+  const pendingGrades = useMemo(() => {
+    if (!rawPendingGrades) return [];
+    return rawPendingGrades.map(sub => ({
+      id: sub.id,
+      student: sub.studentProfile 
+        ? `${sub.studentProfile.first_name} ${sub.studentProfile.last_name}`
+        : "Unknown Student",
+      project: sub.challenge?.title || "Project",
+      company: sub.companyProfile?.company_name || "Company",
+      companyGrade: getGradeLabel(sub.grade),
+      credits: sub.challenge?.credits || 0,
+      feedback: sub.company_feedback || "",
+      submittedAt: sub.graded_at 
+        ? new Date(sub.graded_at).toLocaleDateString()
+        : "Recently",
+      status: sub.status as "pending" | "approved" | "disputed",
+      challengeId: sub.challenge?.id || "",
+    }));
+  }, [rawPendingGrades]);
+
+  // Transform exemption requests
+  const exemptionRequests = useMemo(() => {
+    if (!rawExemptionRequests) return [];
+    return rawExemptionRequests.map((req: any) => exemptionRequestFromDb({
+      ...req,
+      studentProfile: req.studentProfile,
+      currentCredits: req.currentCredits,
+    })).map(req => ({
+      id: req.id,
+      student: req.studentProfile 
+        ? `${req.studentProfile.firstName} ${req.studentProfile.lastName}`
+        : "Unknown Student",
+      credits: req.currentCredits || req.creditsAtRequest,
+      requiredCredits: 300, // Could be configurable
+      requestedAt: new Date(req.createdAt).toLocaleDateString(),
+      reason: req.reason || "",
+      status: req.status as "pending" | "approved" | "rejected",
+      warning: req.creditsAtRequest < 300 ? `${300 - req.creditsAtRequest} credits below threshold` : undefined,
+      subject: req.subject,
+    }));
+  }, [rawExemptionRequests]);
+
+  // Filter for pending items
+  const pendingGradesFiltered = pendingGrades.filter(g => g.status !== "approved");
   const exemptionRequestsFiltered = exemptionRequests.filter(e => e.status === "pending");
+
+  const allGradesSelected = pendingGradesFiltered.length > 0 && 
+    selectedGrades.size === pendingGradesFiltered.length;
+  const someGradesSelected = selectedGrades.size > 0 && !allGradesSelected;
   
-  const selectedGradesCount = pendingGradesFiltered.filter(g => g.selected).length;
-  const selectedExemptionsCount = exemptionRequestsFiltered.filter(e => e.selected).length;
-  
-  const allGradesSelected = pendingGradesFiltered.length > 0 && selectedGradesCount === pendingGradesFiltered.length;
-  const someGradesSelected = selectedGradesCount > 0 && !allGradesSelected;
-  
-  const allExemptionsSelected = exemptionRequestsFiltered.length > 0 && selectedExemptionsCount === exemptionRequestsFiltered.length;
-  const someExemptionsSelected = selectedExemptionsCount > 0 && !allExemptionsSelected;
+  const allExemptionsSelected = exemptionRequestsFiltered.length > 0 && 
+    selectedExemptions.size === exemptionRequestsFiltered.length;
+  const someExemptionsSelected = selectedExemptions.size > 0 && !allExemptionsSelected;
 
   const getGradeColor = (grade: string) => {
     const colors: Record<string, string> = {
@@ -186,113 +116,127 @@ const AssessmentApproval = () => {
   };
 
   // Toggle selection
-  const toggleGradeSelection = (id: number) => {
-    setPendingGrades(prev => prev.map(g => 
-      g.id === id ? { ...g, selected: !g.selected } : g
-    ));
+  const toggleGradeSelection = (id: string) => {
+    const newSelected = new Set(selectedGrades);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedGrades(newSelected);
   };
 
   const toggleAllGrades = () => {
-    const newSelected = !allGradesSelected;
-    setPendingGrades(prev => prev.map(g => 
-      g.status === "pending" ? { ...g, selected: newSelected } : g
-    ));
+    if (allGradesSelected) {
+      setSelectedGrades(new Set());
+    } else {
+      setSelectedGrades(new Set(pendingGradesFiltered.map(g => g.id)));
+    }
   };
 
-  const toggleExemptionSelection = (id: number) => {
-    setExemptionRequests(prev => prev.map(e => 
-      e.id === id ? { ...e, selected: !e.selected } : e
-    ));
+  const toggleExemptionSelection = (id: string) => {
+    const newSelected = new Set(selectedExemptions);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedExemptions(newSelected);
   };
 
   const toggleAllExemptions = () => {
-    const newSelected = !allExemptionsSelected;
-    setExemptionRequests(prev => prev.map(e => 
-      e.status === "pending" ? { ...e, selected: newSelected } : e
-    ));
+    if (allExemptionsSelected) {
+      setSelectedExemptions(new Set());
+    } else {
+      setSelectedExemptions(new Set(exemptionRequestsFiltered.map(e => e.id)));
+    }
   };
 
-  // Single actions
-  const handleApproveGrade = (id: number) => {
-    setPendingGrades(prev => prev.map(g => 
-      g.id === id ? { ...g, status: "approved" as const, selected: false } : g
-    ));
-    toast.success("Grade approved and credits awarded to student");
+  // Actions
+  const handleApproveGrade = async (item: typeof pendingGrades[0]) => {
+    try {
+      await approveGrade.mutateAsync({
+        submissionId: item.id,
+        credits: item.credits,
+        challengeId: item.challengeId,
+      });
+      toast.success("Grade approved and credits awarded to student");
+    } catch (error) {
+      toast.error("Failed to approve grade");
+    }
   };
 
-  const handleDisputeGrade = (id: number) => {
+  const handleDisputeGrade = async (id: string) => {
     if (!disputeReason.trim()) {
       toast.error("Please provide a reason for dispute");
       return;
     }
-    setPendingGrades(prev => prev.map(g => 
-      g.id === id ? { ...g, status: "disputed" as const, selected: false } : g
-    ));
-    toast.info("Dispute submitted. Company will be notified.");
-    setDisputeOpen(null);
-    setDisputeReason("");
+    try {
+      await disputeGrade.mutateAsync({
+        submissionId: id,
+        reason: disputeReason,
+      });
+      toast.info("Dispute submitted. Company will be notified.");
+      setDisputeOpen(null);
+      setDisputeReason("");
+    } catch (error) {
+      toast.error("Failed to submit dispute");
+    }
   };
 
-  const handleApproveExemption = (id: number) => {
-    setExemptionRequests(prev => prev.map(e => 
-      e.id === id ? { ...e, status: "approved" as const, selected: false } : e
-    ));
-    toast.success("Exam exemption approved");
+  const handleApproveExemption = async (id: string) => {
+    try {
+      await approveExemption.mutateAsync(id);
+      toast.success("Exam exemption approved");
+    } catch (error) {
+      toast.error("Failed to approve exemption");
+    }
   };
 
-  const handleRejectExemption = (id: number) => {
-    setExemptionRequests(prev => prev.map(e => 
-      e.id === id ? { ...e, status: "rejected" as const, selected: false } : e
-    ));
-    toast.info("Exemption request rejected");
+  const handleRejectExemption = async (id: string) => {
+    try {
+      await rejectExemption.mutateAsync(id);
+      toast.info("Exemption request rejected");
+    } catch (error) {
+      toast.error("Failed to reject exemption");
+    }
   };
 
   // Bulk actions
   const handleBulkApproveGrades = async () => {
-    setIsProcessing(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    const selectedIds = pendingGrades.filter(g => g.selected && g.status === "pending").map(g => g.id);
-    setPendingGrades(prev => prev.map(g => 
-      selectedIds.includes(g.id) ? { ...g, status: "approved" as const, selected: false } : g
-    ));
-    
-    setIsProcessing(false);
+    const selectedItems = pendingGradesFiltered.filter(g => selectedGrades.has(g.id));
+    for (const item of selectedItems) {
+      await handleApproveGrade(item);
+    }
+    setSelectedGrades(new Set());
     setShowBulkConfirm(null);
-    toast.success(`${selectedIds.length} grade${selectedIds.length > 1 ? 's' : ''} approved successfully!`, {
-      description: "Credits have been awarded to all selected students"
-    });
   };
 
   const handleBulkApproveExemptions = async () => {
-    setIsProcessing(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    const selectedIds = exemptionRequests.filter(e => e.selected && e.status === "pending").map(e => e.id);
-    setExemptionRequests(prev => prev.map(e => 
-      selectedIds.includes(e.id) ? { ...e, status: "approved" as const, selected: false } : e
-    ));
-    
-    setIsProcessing(false);
+    for (const id of selectedExemptions) {
+      await handleApproveExemption(id);
+    }
+    setSelectedExemptions(new Set());
     setShowBulkConfirm(null);
-    toast.success(`${selectedIds.length} exemption${selectedIds.length > 1 ? 's' : ''} approved!`, {
-      description: "Students have been notified of their exam exemption"
-    });
   };
 
   const handleBulkRejectExemptions = async () => {
-    setIsProcessing(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    const selectedIds = exemptionRequests.filter(e => e.selected && e.status === "pending").map(e => e.id);
-    setExemptionRequests(prev => prev.map(e => 
-      selectedIds.includes(e.id) ? { ...e, status: "rejected" as const, selected: false } : e
-    ));
-    
-    setIsProcessing(false);
+    for (const id of selectedExemptions) {
+      await handleRejectExemption(id);
+    }
+    setSelectedExemptions(new Set());
     setShowBulkConfirm(null);
-    toast.info(`${selectedIds.length} exemption${selectedIds.length > 1 ? 's' : ''} rejected`);
   };
+
+  const isLoading = gradesLoading || exemptionsLoading;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -328,7 +272,7 @@ const AssessmentApproval = () => {
         </button>
       </div>
 
-      {/* Bulk Action Bar */}
+      {/* Bulk Action Bar for Grades */}
       {activeTab === "grades" && pendingGradesFiltered.length > 0 && (
         <div className="flex items-center justify-between p-4 bg-secondary/50 rounded-xl border border-border">
           <div className="flex items-center gap-3">
@@ -348,28 +292,27 @@ const AssessmentApproval = () => {
               )}
               Select All
             </button>
-            {selectedGradesCount > 0 && (
+            {selectedGrades.size > 0 && (
               <span className="text-sm text-primary font-medium">
-                {selectedGradesCount} selected
+                {selectedGrades.size} selected
               </span>
             )}
           </div>
           
-          {selectedGradesCount > 0 && (
-            <div className="flex items-center gap-2">
-              <Button 
-                size="sm" 
-                className="rounded-xl gap-2"
-                onClick={() => setShowBulkConfirm("approve")}
-              >
-                <CheckCircle className="w-4 h-4" />
-                Approve Selected ({selectedGradesCount})
-              </Button>
-            </div>
+          {selectedGrades.size > 0 && (
+            <Button 
+              size="sm" 
+              className="rounded-xl gap-2"
+              onClick={() => setShowBulkConfirm("approve")}
+            >
+              <CheckCircle className="w-4 h-4" />
+              Approve Selected ({selectedGrades.size})
+            </Button>
           )}
         </div>
       )}
 
+      {/* Bulk Action Bar for Exemptions */}
       {activeTab === "exemptions" && exemptionRequestsFiltered.length > 0 && (
         <div className="flex items-center justify-between p-4 bg-secondary/50 rounded-xl border border-border">
           <div className="flex items-center gap-3">
@@ -389,14 +332,14 @@ const AssessmentApproval = () => {
               )}
               Select All
             </button>
-            {selectedExemptionsCount > 0 && (
+            {selectedExemptions.size > 0 && (
               <span className="text-sm text-primary font-medium">
-                {selectedExemptionsCount} selected
+                {selectedExemptions.size} selected
               </span>
             )}
           </div>
           
-          {selectedExemptionsCount > 0 && (
+          {selectedExemptions.size > 0 && (
             <div className="flex items-center gap-2">
               <Button 
                 variant="outline"
@@ -405,7 +348,7 @@ const AssessmentApproval = () => {
                 onClick={() => setShowBulkConfirm("reject")}
               >
                 <XCircle className="w-4 h-4" />
-                Reject ({selectedExemptionsCount})
+                Reject ({selectedExemptions.size})
               </Button>
               <Button 
                 size="sm" 
@@ -413,341 +356,261 @@ const AssessmentApproval = () => {
                 onClick={() => setShowBulkConfirm("approve")}
               >
                 <CheckCircle className="w-4 h-4" />
-                Approve ({selectedExemptionsCount})
+                Approve ({selectedExemptions.size})
               </Button>
             </div>
           )}
         </div>
       )}
 
-      {/* Content */}
-      {activeTab === "grades" ? (
+      {/* Grades Content */}
+      {activeTab === "grades" && (
         <div className="space-y-4">
-          {pendingGrades.map((item) => (
-            <div 
-              key={item.id} 
-              className={`glass-card p-5 transition-all ${
-                item.status === "approved" ? "opacity-60" : 
-                item.status === "disputed" ? "border-warning/30" : 
-                item.selected ? "border-primary/50 bg-primary/5" : ""
-              }`}
-            >
-              <div className="flex flex-col gap-4">
-                <div className="flex items-start gap-4">
-                  {/* Checkbox */}
-                  {item.status === "pending" && (
+          {pendingGradesFiltered.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              No pending grades to review.
+            </div>
+          ) : (
+            pendingGradesFiltered.map((item) => (
+              <div 
+                key={item.id} 
+                className={`glass-card p-5 transition-all ${
+                  item.status === "disputed" ? "border-warning/30" : 
+                  selectedGrades.has(item.id) ? "border-primary/50 bg-primary/5" : ""
+                }`}
+              >
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-start gap-4">
+                    {/* Checkbox */}
                     <button 
                       onClick={() => toggleGradeSelection(item.id)}
                       className="mt-1 shrink-0"
                     >
-                      {item.selected ? (
+                      {selectedGrades.has(item.id) ? (
                         <CheckSquare className="w-5 h-5 text-primary" />
                       ) : (
                         <Square className="w-5 h-5 text-muted-foreground hover:text-foreground" />
                       )}
                     </button>
-                  )}
-                  
-                  <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold shrink-0">
-                    {item.student.split(' ').map(n => n[0]).join('')}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <h3 className="font-bold text-foreground">{item.student}</h3>
-                      <span className={`status-badge ${getGradeColor(item.companyGrade)}`}>
-                        <Star className="w-3 h-3 mr-1" />
-                        {item.companyGrade}
-                      </span>
-                      {item.status === "approved" && (
-                        <span className="status-badge bg-success/10 text-success">
-                          <CheckCircle className="w-3 h-3 mr-1" />
-                          Approved
-                        </span>
-                      )}
-                      {item.status === "disputed" && (
-                        <span className="status-badge bg-warning/10 text-warning">
-                          <Flag className="w-3 h-3 mr-1" />
-                          Disputed
-                        </span>
-                      )}
+                    
+                    <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold shrink-0">
+                      {item.student.split(' ').map(n => n[0]).join('')}
                     </div>
-                    <p className="text-sm text-muted-foreground">{item.project}</p>
-                    <p className="text-xs text-muted-foreground">Company: {item.company} • {item.submittedAt}</p>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <h3 className="font-bold text-foreground">{item.student}</h3>
+                        <span className={`status-badge ${getGradeColor(item.companyGrade)}`}>
+                          <Star className="w-3 h-3 mr-1" />
+                          {item.companyGrade}
+                        </span>
+                        {item.status === "disputed" && (
+                          <span className="status-badge bg-warning/10 text-warning">
+                            <Flag className="w-3 h-3 mr-1" />
+                            Disputed
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground">{item.project}</p>
+                      <p className="text-xs text-muted-foreground">Company: {item.company} • {item.submittedAt}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-2xl font-bold text-primary">{item.credits}</p>
+                      <p className="text-xs text-muted-foreground">credits</p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-bold text-primary">{item.credits}</p>
-                    <p className="text-xs text-muted-foreground">credits</p>
-                  </div>
-                </div>
 
-                {/* Company Feedback */}
-                <div className="p-4 rounded-xl bg-muted/30 ml-9">
-                  <div className="flex items-center gap-2 mb-2">
-                    <MessageSquare className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm font-medium text-foreground">Company Feedback</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground">{item.feedback}</p>
-                </div>
+                  {/* Company Feedback */}
+                  {item.feedback && (
+                    <div className="p-4 rounded-xl bg-muted/30 ml-9">
+                      <div className="flex items-center gap-2 mb-2">
+                        <MessageSquare className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-xs font-medium text-foreground">Company Feedback</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">{item.feedback}</p>
+                    </div>
+                  )}
 
-                {/* Dispute Form */}
-                {disputeOpen === item.id && (
-                  <div className="p-4 rounded-xl bg-warning/5 border border-warning/20 ml-9">
-                    <label className="block text-sm font-medium text-foreground mb-2">Dispute Reason</label>
-                    <textarea
-                      rows={2}
-                      value={disputeReason}
-                      onChange={(e) => setDisputeReason(e.target.value)}
-                      placeholder="Explain why you're disputing this grade..."
-                      className="w-full px-4 py-2 bg-secondary rounded-xl text-foreground border-0 outline-none focus:ring-2 focus:ring-warning/20 resize-none mb-3"
-                    />
-                    <div className="flex gap-2">
+                  {/* Actions */}
+                  {item.status !== "disputed" && (
+                    <div className="flex items-center gap-3 ml-9">
                       <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="rounded-xl"
-                        onClick={() => {
-                          setDisputeOpen(null);
-                          setDisputeReason("");
-                        }}
+                        className="rounded-xl gap-2 bg-success hover:bg-success/90"
+                        onClick={() => handleApproveGrade(item)}
+                        disabled={approveGrade.isPending}
                       >
-                        Cancel
+                        {approveGrade.isPending ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <CheckCircle className="w-4 h-4" />
+                        )}
+                        Approve & Award Credits
                       </Button>
                       <Button 
-                        size="sm" 
-                        className="rounded-xl gap-2 bg-warning hover:bg-warning/90 text-warning-foreground"
-                        onClick={() => handleDisputeGrade(item.id)}
+                        variant="outline"
+                        className="rounded-xl gap-2 text-warning hover:text-warning"
+                        onClick={() => setDisputeOpen(item.id)}
                       >
-                        <Send className="w-3 h-3" />
-                        Submit Dispute
+                        <Flag className="w-4 h-4" />
+                        Dispute Grade
                       </Button>
                     </div>
-                  </div>
-                )}
-
-                {/* Actions */}
-                {item.status === "pending" && (
-                  <div className="flex items-center gap-3 pt-2 ml-9">
-                    <Button variant="outline" className="rounded-xl gap-2">
-                      <Eye className="w-4 h-4" />
-                      View Submission
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      className="rounded-xl gap-2 text-warning hover:text-warning hover:border-warning"
-                      onClick={() => setDisputeOpen(item.id)}
-                    >
-                      <Flag className="w-4 h-4" />
-                      Dispute
-                    </Button>
-                    <Button 
-                      className="rounded-xl gap-2 ml-auto"
-                      onClick={() => handleApproveGrade(item.id)}
-                    >
-                      <CheckCircle className="w-4 h-4" />
-                      Approve Grade
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-
-          {pendingGradesFiltered.length === 0 && (
-            <div className="text-center py-12">
-              <div className="w-16 h-16 rounded-2xl bg-success/10 flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="w-8 h-8 text-success" />
-              </div>
-              <h3 className="text-lg font-semibold text-foreground mb-2">All caught up!</h3>
-              <p className="text-muted-foreground">All grades have been reviewed.</p>
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {exemptionRequests.map((request) => (
-            <div 
-              key={request.id} 
-              className={`glass-card p-5 transition-all ${
-                request.status === "approved" ? "opacity-60 border-success/30" : 
-                request.status === "rejected" ? "opacity-60 border-destructive/30" :
-                request.selected ? "border-primary/50 bg-primary/5" :
-                request.warning ? "border-warning/30" : ""
-              }`}
-            >
-              <div className="flex flex-col gap-4">
-                <div className="flex items-start gap-4">
-                  {/* Checkbox */}
-                  {request.status === "pending" && (
-                    <button 
-                      onClick={() => toggleExemptionSelection(request.id)}
-                      className="mt-1 shrink-0"
-                    >
-                      {request.selected ? (
-                        <CheckSquare className="w-5 h-5 text-primary" />
-                      ) : (
-                        <Square className="w-5 h-5 text-muted-foreground hover:text-foreground" />
-                      )}
-                    </button>
                   )}
-                  
-                  <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold shrink-0">
-                    {request.student.split(' ').map(n => n[0]).join('')}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <h3 className="font-bold text-foreground">{request.student}</h3>
-                      {request.status === "pending" && (
-                        <span className="status-badge bg-warning/10 text-warning">
-                          <Clock className="w-3 h-3 mr-1" />
-                          Pending Review
-                        </span>
-                      )}
-                      {request.status === "approved" && (
-                        <span className="status-badge bg-success/10 text-success">
-                          <CheckCircle className="w-3 h-3 mr-1" />
-                          Approved
-                        </span>
-                      )}
-                      {request.status === "rejected" && (
-                        <span className="status-badge bg-destructive/10 text-destructive">
-                          <XCircle className="w-3 h-3 mr-1" />
-                          Rejected
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-sm text-muted-foreground">Requested {request.requestedAt}</p>
-                  </div>
                 </div>
-
-                {/* Stats */}
-                <div className="grid grid-cols-4 gap-3 ml-9">
-                  <div className="p-3 rounded-xl bg-muted/30 text-center">
-                    <p className="text-lg font-bold text-foreground">{request.credits}</p>
-                    <p className="text-xs text-muted-foreground">Credits Earned</p>
-                  </div>
-                  <div className="p-3 rounded-xl bg-muted/30 text-center">
-                    <p className="text-lg font-bold text-foreground">{request.requiredCredits}</p>
-                    <p className="text-xs text-muted-foreground">Required</p>
-                  </div>
-                  <div className="p-3 rounded-xl bg-muted/30 text-center">
-                    <p className="text-lg font-bold text-foreground">{request.projectsCompleted}</p>
-                    <p className="text-xs text-muted-foreground">Projects</p>
-                  </div>
-                  <div className="p-3 rounded-xl bg-success/10 text-center">
-                    <p className="text-lg font-bold text-success">{request.averageGrade}</p>
-                    <p className="text-xs text-muted-foreground">Avg Grade</p>
-                  </div>
-                </div>
-
-                {request.warning && request.status === "pending" && (
-                  <div className="flex items-center gap-2 p-3 rounded-xl bg-warning/10 border border-warning/20 ml-9">
-                    <AlertTriangle className="w-4 h-4 text-warning shrink-0" />
-                    <span className="text-sm text-warning">{request.warning}</span>
-                  </div>
-                )}
-
-                {/* Reason */}
-                <div className="p-4 rounded-xl bg-muted/30 ml-9">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Award className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm font-medium text-foreground">Student Statement</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground">{request.reason}</p>
-                </div>
-
-                {/* Actions */}
-                {request.status === "pending" && (
-                  <div className="flex items-center gap-3 pt-2 ml-9">
-                    <Button variant="outline" className="rounded-xl gap-2">
-                      <Eye className="w-4 h-4" />
-                      View Full Profile
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      className="rounded-xl gap-2 text-destructive hover:text-destructive hover:border-destructive"
-                      onClick={() => handleRejectExemption(request.id)}
-                    >
-                      <XCircle className="w-4 h-4" />
-                      Reject
-                    </Button>
-                    <Button 
-                      className="rounded-xl gap-2 ml-auto bg-success hover:bg-success/90"
-                      onClick={() => handleApproveExemption(request.id)}
-                    >
-                      <CheckCircle className="w-4 h-4" />
-                      Approve Exemption
-                    </Button>
-                  </div>
-                )}
               </div>
-            </div>
-          ))}
-
-          {exemptionRequestsFiltered.length === 0 && (
-            <div className="text-center py-12">
-              <div className="w-16 h-16 rounded-2xl bg-success/10 flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="w-8 h-8 text-success" />
-              </div>
-              <h3 className="text-lg font-semibold text-foreground mb-2">All caught up!</h3>
-              <p className="text-muted-foreground">All exemption requests have been reviewed.</p>
-            </div>
+            ))
           )}
         </div>
       )}
 
-      {/* Bulk Confirmation Dialog */}
-      <Dialog open={showBulkConfirm !== null} onOpenChange={() => setShowBulkConfirm(null)}>
-        <DialogContent className="sm:max-w-md">
+      {/* Exemptions Content */}
+      {activeTab === "exemptions" && (
+        <div className="space-y-4">
+          {exemptionRequestsFiltered.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              No pending exemption requests.
+            </div>
+          ) : (
+            exemptionRequestsFiltered.map((item) => (
+              <div 
+                key={item.id} 
+                className={`glass-card p-5 transition-all ${
+                  selectedExemptions.has(item.id) ? "border-primary/50 bg-primary/5" : ""
+                }`}
+              >
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-start gap-4">
+                    {/* Checkbox */}
+                    <button 
+                      onClick={() => toggleExemptionSelection(item.id)}
+                      className="mt-1 shrink-0"
+                    >
+                      {selectedExemptions.has(item.id) ? (
+                        <CheckSquare className="w-5 h-5 text-primary" />
+                      ) : (
+                        <Square className="w-5 h-5 text-muted-foreground hover:text-foreground" />
+                      )}
+                    </button>
+                    
+                    <div className="w-12 h-12 rounded-xl bg-success/10 text-success flex items-center justify-center shrink-0">
+                      <Award className="w-6 h-6" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <h3 className="font-bold text-foreground">{item.student}</h3>
+                        {item.warning && (
+                          <span className="status-badge bg-warning/10 text-warning">
+                            <AlertTriangle className="w-3 h-3 mr-1" />
+                            {item.warning}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground">Subject: {item.subject}</p>
+                      <p className="text-xs text-muted-foreground">Requested {item.requestedAt}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-2xl font-bold text-success">{item.credits}</p>
+                      <p className="text-xs text-muted-foreground">/ {item.requiredCredits} required</p>
+                    </div>
+                  </div>
+
+                  {/* Reason */}
+                  {item.reason && (
+                    <div className="p-4 rounded-xl bg-muted/30 ml-9">
+                      <div className="flex items-center gap-2 mb-2">
+                        <MessageSquare className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-xs font-medium text-foreground">Student's Reason</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">{item.reason}</p>
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-3 ml-9">
+                    <Button 
+                      className="rounded-xl gap-2 bg-success hover:bg-success/90"
+                      onClick={() => handleApproveExemption(item.id)}
+                      disabled={approveExemption.isPending}
+                    >
+                      {approveExemption.isPending ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <CheckCircle className="w-4 h-4" />
+                      )}
+                      Approve Exemption
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      className="rounded-xl gap-2 text-destructive hover:text-destructive"
+                      onClick={() => handleRejectExemption(item.id)}
+                      disabled={rejectExemption.isPending}
+                    >
+                      <XCircle className="w-4 h-4" />
+                      Reject
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {/* Dispute Dialog */}
+      <Dialog open={!!disputeOpen} onOpenChange={() => setDisputeOpen(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Dispute Grade</DialogTitle>
+            <DialogDescription>
+              Provide a reason for disputing this grade. The company will be notified.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <textarea
+              rows={4}
+              value={disputeReason}
+              onChange={(e) => setDisputeReason(e.target.value)}
+              placeholder="Explain why you disagree with this grade..."
+              className="w-full px-4 py-3 bg-secondary rounded-xl text-foreground border-0 outline-none focus:ring-2 focus:ring-primary/20 resize-none"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDisputeOpen(null)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => disputeOpen && handleDisputeGrade(disputeOpen)}
+              disabled={disputeGrade.isPending}
+              className="gap-2"
+            >
+              {disputeGrade.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Send className="w-4 h-4" />
+              )}
+              Submit Dispute
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Confirm Dialog */}
+      <Dialog open={!!showBulkConfirm} onOpenChange={() => setShowBulkConfirm(null)}>
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>
               {showBulkConfirm === "approve" ? "Confirm Bulk Approval" : "Confirm Bulk Rejection"}
             </DialogTitle>
             <DialogDescription>
-              {activeTab === "grades" ? (
-                <>
-                  You are about to approve <strong>{selectedGradesCount}</strong> grade{selectedGradesCount > 1 ? 's' : ''}. 
-                  This will award credits to all selected students.
-                </>
-              ) : showBulkConfirm === "approve" ? (
-                <>
-                  You are about to approve <strong>{selectedExemptionsCount}</strong> exemption request{selectedExemptionsCount > 1 ? 's' : ''}. 
-                  Selected students will be exempt from their final exams.
-                </>
-              ) : (
-                <>
-                  You are about to reject <strong>{selectedExemptionsCount}</strong> exemption request{selectedExemptionsCount > 1 ? 's' : ''}. 
-                  Students will be notified and must complete their exams.
-                </>
-              )}
+              {activeTab === "grades" 
+                ? `You are about to approve ${selectedGrades.size} grade(s) and award credits.`
+                : showBulkConfirm === "approve"
+                  ? `You are about to approve ${selectedExemptions.size} exemption request(s).`
+                  : `You are about to reject ${selectedExemptions.size} exemption request(s).`
+              }
             </DialogDescription>
           </DialogHeader>
-          
-          <div className="py-4">
-            <div className="p-4 bg-secondary/50 rounded-xl space-y-2">
-              {activeTab === "grades" ? (
-                pendingGrades.filter(g => g.selected && g.status === "pending").map(g => (
-                  <div key={g.id} className="flex items-center justify-between text-sm">
-                    <span className="text-foreground">{g.student}</span>
-                    <span className="text-primary font-medium">{g.credits} credits</span>
-                  </div>
-                ))
-              ) : (
-                exemptionRequests.filter(e => e.selected && e.status === "pending").map(e => (
-                  <div key={e.id} className="flex items-center justify-between text-sm">
-                    <span className="text-foreground">{e.student}</span>
-                    <span className="text-muted-foreground">{e.credits}/{e.requiredCredits} credits</span>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          <DialogFooter className="gap-2">
-            <Button 
-              variant="outline" 
-              onClick={() => setShowBulkConfirm(null)} 
-              disabled={isProcessing}
-            >
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowBulkConfirm(null)}>
               Cancel
             </Button>
             <Button 
@@ -760,20 +623,9 @@ const AssessmentApproval = () => {
                   handleBulkRejectExemptions();
                 }
               }}
-              disabled={isProcessing}
-              className={`gap-2 ${showBulkConfirm === "reject" ? "bg-destructive hover:bg-destructive/90" : "bg-success hover:bg-success/90"}`}
+              className={showBulkConfirm === "reject" ? "bg-destructive hover:bg-destructive/90" : ""}
             >
-              {isProcessing ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                <>
-                  {showBulkConfirm === "approve" ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
-                  {showBulkConfirm === "approve" ? "Confirm Approval" : "Confirm Rejection"}
-                </>
-              )}
+              {showBulkConfirm === "approve" ? "Approve All" : "Reject All"}
             </Button>
           </DialogFooter>
         </DialogContent>

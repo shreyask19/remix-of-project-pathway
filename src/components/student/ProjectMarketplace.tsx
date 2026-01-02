@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { 
   Search, 
-  Filter, 
   ArrowRight, 
   Code, 
   Palette, 
@@ -11,9 +10,10 @@ import {
   CheckCircle,
   X,
   SortAsc,
-  Plus
+  Loader2,
+  RefreshCw
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -30,29 +30,41 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-interface Project {
-  id: number;
-  company: string;
-  companyLogo: string;
-  title: string;
-  description: string;
-  credits: number;
-  difficulty: "Easy" | "Medium" | "Hard";
-  skills: string[];
-  deadline: string;
-  category: string;
-  icon: React.ReactNode;
-  applied?: boolean;
-}
+import { useChallenges, type Challenge } from "@/hooks/useChallenges";
+import { formatDeadline } from "@/lib/transformers";
 
 const ProjectMarketplace = () => {
   const [activeFilter, setActiveFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("deadline");
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [selectedProject, setSelectedProject] = useState<(Challenge & { companyName: string }) | null>(null);
   const [showApplyModal, setShowApplyModal] = useState(false);
-  const [isApplying, setIsApplying] = useState(false);
+
+  // Use the useChallenges hook with server-side filtering
+  const { 
+    challenges, 
+    challengesLoading, 
+    applications,
+    applyToChallenge 
+  } = useChallenges({
+    searchQuery: searchQuery.trim() || undefined,
+    category: activeFilter !== "all" ? activeFilter : undefined,
+  });
+
+  // Transform challenges for display
+  const transformedChallenges = useMemo(() => {
+    if (!challenges) return [];
+    return challenges.map(c => ({
+      ...c,
+      companyName: c.company?.company_name || "Heuristic Labs",
+      logoUrl: c.company?.logo_url,
+    }));
+  }, [rawChallenges]);
+
+  // Get applied challenge IDs
+  const appliedChallengeIds = useMemo(() => {
+    return new Set(applications?.map(a => a.challenge_id) || []);
+  }, [applications]);
 
   const filters = [
     { id: "all", label: "All Projects" },
@@ -64,187 +76,68 @@ const ProjectMarketplace = () => {
     { id: "devops", label: "DevOps" },
   ];
 
-  const [projects, setProjects] = useState<Project[]>([
-    {
-      id: 1,
-      company: "Spotify",
-      companyLogo: "S",
-      title: "Market Analysis Dashboard",
-      description: "Analyze Gen-Z listening habits in Southeast Asia and propose a new feature recommendation engine.",
-      credits: 60,
-      difficulty: "Medium",
-      skills: ["Python", "Data Analysis", "SQL"],
-      deadline: "15 days",
-      category: "data",
-      icon: <BarChart3 className="w-5 h-5" />,
-    },
-    {
-      id: 2,
-      company: "Tesla",
-      companyLogo: "T",
-      title: "EV Charging UX Redesign",
-      description: "Redesign the mobile app charging station finder with improved UX and real-time availability.",
-      credits: 85,
-      difficulty: "Hard",
-      skills: ["Figma", "UX Research", "Prototyping"],
-      deadline: "20 days",
-      category: "design",
-      icon: <Palette className="w-5 h-5" />,
-    },
-    {
-      id: 3,
-      company: "Stripe",
-      companyLogo: "S",
-      title: "Payment API Integration",
-      description: "Build a robust payment processing module with webhook handling and error recovery.",
-      credits: 90,
-      difficulty: "Hard",
-      skills: ["Node.js", "REST API", "PostgreSQL"],
-      deadline: "25 days",
-      category: "backend",
-      icon: <Database className="w-5 h-5" />,
-    },
-    {
-      id: 4,
-      company: "Airbnb",
-      companyLogo: "A",
-      title: "React Component Library",
-      description: "Create a reusable component library for booking flow with accessibility in mind.",
-      credits: 70,
-      difficulty: "Medium",
-      skills: ["React", "TypeScript", "Storybook"],
-      deadline: "18 days",
-      category: "frontend",
-      icon: <Code className="w-5 h-5" />,
-    },
-    {
-      id: 5,
-      company: "Netflix",
-      companyLogo: "N",
-      title: "Content Recommendation Algorithm",
-      description: "Develop a machine learning model to improve content recommendations for new users.",
-      credits: 100,
-      difficulty: "Hard",
-      skills: ["Python", "ML", "TensorFlow"],
-      deadline: "30 days",
-      category: "data",
-      icon: <BarChart3 className="w-5 h-5" />,
-    },
-    {
-      id: 6,
-      company: "Google",
-      companyLogo: "G",
-      title: "Landing Page Optimization",
-      description: "Design and implement A/B testing framework for marketing landing pages.",
-      credits: 50,
-      difficulty: "Easy",
-      skills: ["HTML", "CSS", "JavaScript"],
-      deadline: "10 days",
-      category: "frontend",
-      icon: <Code className="w-5 h-5" />,
-    },
-    {
-      id: 7,
-      company: "Amazon",
-      companyLogo: "A",
-      title: "Inventory Management System",
-      description: "Build a real-time inventory tracking system with predictive restocking alerts.",
-      credits: 80,
-      difficulty: "Hard",
-      skills: ["Python", "AWS", "DynamoDB"],
-      deadline: "22 days",
-      category: "backend",
-      icon: <Database className="w-5 h-5" />,
-    },
-    {
-      id: 8,
-      company: "Meta",
-      companyLogo: "M",
-      title: "Social Feed Algorithm",
-      description: "Optimize content ranking algorithm for better user engagement and relevance.",
-      credits: 95,
-      difficulty: "Hard",
-      skills: ["Python", "ML", "Graph DB"],
-      deadline: "28 days",
-      category: "data",
-      icon: <BarChart3 className="w-5 h-5" />,
-    },
-    {
-      id: 9,
-      company: "Uber",
-      companyLogo: "U",
-      title: "Driver App Redesign",
-      description: "Redesign the driver-side app for better navigation and earnings visibility.",
-      credits: 75,
-      difficulty: "Medium",
-      skills: ["Figma", "Mobile UX", "Prototyping"],
-      deadline: "16 days",
-      category: "design",
-      icon: <Palette className="w-5 h-5" />,
-    },
-    {
-      id: 10,
-      company: "Microsoft",
-      companyLogo: "M",
-      title: "VS Code Extension",
-      description: "Create a productivity extension for Visual Studio Code with AI assistance.",
-      credits: 65,
-      difficulty: "Medium",
-      skills: ["TypeScript", "Node.js", "VS Code API"],
-      deadline: "21 days",
-      category: "frontend",
-      icon: <Code className="w-5 h-5" />,
-    },
-  ]);
-
-  // Filter and search logic
-  const filteredProjects = projects
-    .filter(p => activeFilter === "all" || p.category === activeFilter)
-    .filter(p => {
-      if (!searchQuery.trim()) return true;
-      const query = searchQuery.toLowerCase();
-      return (
-        p.title.toLowerCase().includes(query) ||
-        p.company.toLowerCase().includes(query) ||
-        p.description.toLowerCase().includes(query) ||
-        p.skills.some(s => s.toLowerCase().includes(query))
-      );
-    })
-    .sort((a, b) => {
+  // Client-side sorting only (filtering is server-side)
+  const sortedChallenges = useMemo(() => {
+    if (!challenges) return [];
+    
+    return [...challenges].sort((a, b) => {
       switch (sortBy) {
         case "credits-high":
           return b.credits - a.credits;
         case "credits-low":
           return a.credits - b.credits;
-        case "difficulty":
-          const diffOrder = { Easy: 1, Medium: 2, Hard: 3 };
-          return diffOrder[a.difficulty] - diffOrder[b.difficulty];
-        default:
-          return parseInt(a.deadline) - parseInt(b.deadline);
+        case "difficulty": {
+          const diffOrder: Record<string, number> = { Easy: 1, Medium: 2, Hard: 3 };
+          return (diffOrder[a.difficulty] || 2) - (diffOrder[b.difficulty] || 2);
+        }
+        default: // deadline
+          if (!a.deadline && !b.deadline) return 0;
+          if (!a.deadline) return 1;
+          if (!b.deadline) return -1;
+          return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
       }
     });
+  }, [challenges, sortBy]);
+
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case "frontend":
+        return <Code className="w-5 h-5" />;
+      case "design":
+        return <Palette className="w-5 h-5" />;
+      case "data":
+        return <BarChart3 className="w-5 h-5" />;
+      case "backend":
+        return <Database className="w-5 h-5" />;
+      default:
+        return <Code className="w-5 h-5" />;
+    }
+  };
 
   const handleApply = async () => {
     if (!selectedProject) return;
     
-    setIsApplying(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    setProjects(prev => prev.map(p => 
-      p.id === selectedProject.id ? { ...p, applied: true } : p
-    ));
-    
-    setIsApplying(false);
-    setShowApplyModal(false);
-    setSelectedProject(null);
-    
-    toast.success("Application Submitted!", {
-      description: `You've applied to ${selectedProject.title} at ${selectedProject.company}`,
-    });
+    try {
+      await applyToChallenge.mutateAsync({ 
+        challengeId: selectedProject.id,
+        coverLetter: "" 
+      });
+      
+      setShowApplyModal(false);
+      setSelectedProject(null);
+      
+      toast.success("Application Submitted!", {
+        description: `You've applied to ${selectedProject.title}`,
+      });
+    } catch (error) {
+      toast.error("Failed to apply", {
+        description: "Please try again later",
+      });
+    }
   };
 
-  const openApplyModal = (project: Project) => {
-    if (project.applied) {
+  const openApplyModal = (project: Challenge) => {
+    if (appliedChallengeIds.has(project.id)) {
       toast.info("Already Applied", {
         description: "You've already applied to this project",
       });
@@ -316,99 +209,129 @@ const ProjectMarketplace = () => {
       {/* Results Count */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          Showing {filteredProjects.length} project{filteredProjects.length !== 1 ? "s" : ""}
-          {searchQuery && ` for "${searchQuery}"`}
+          {challengesLoading ? (
+            "Loading..."
+          ) : (
+            <>
+              Showing {sortedChallenges.length} project{sortedChallenges.length !== 1 ? "s" : ""}
+              {searchQuery && ` for "${searchQuery}"`}
+            </>
+          )}
         </p>
       </div>
 
-      {/* Projects Grid */}
-      {filteredProjects.length === 0 ? (
+      {/* Loading State */}
+      {challengesLoading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      )}
+
+      {/* Empty State */}
+      {!challengesLoading && sortedChallenges.length === 0 && (
         <div className="text-center py-12">
           <div className="w-16 h-16 rounded-2xl bg-secondary flex items-center justify-center mx-auto mb-4">
             <Search className="w-8 h-8 text-muted-foreground" />
           </div>
           <h3 className="text-lg font-semibold text-foreground mb-2">No projects found</h3>
-          <p className="text-muted-foreground mb-4">Try adjusting your search or filters</p>
+          <p className="text-muted-foreground mb-4">
+            {searchQuery ? "Try adjusting your search or filters" : "Companies haven't posted any challenges yet"}
+          </p>
           <Button variant="outline" onClick={() => { setSearchQuery(""); setActiveFilter("all"); }}>
+            <RefreshCw className="w-4 h-4 mr-2" />
             Clear Filters
           </Button>
         </div>
-      ) : (
+      )}
+
+      {/* Projects Grid */}
+      {!challengesLoading && sortedChallenges.length > 0 && (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredProjects.map((project) => (
-            <div 
-              key={project.id} 
-              className={`dashboard-card group hover:border-primary/30 transition-all ${project.applied ? "border-success/30 bg-success/5" : ""}`}
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-foreground text-background flex items-center justify-center font-bold">
-                    {project.companyLogo}
-                  </div>
-                  <div>
-                    <p className="font-medium text-foreground">{project.company}</p>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${
-                        project.difficulty === "Easy" ? "bg-success/10 text-success" :
-                        project.difficulty === "Medium" ? "bg-warning/10 text-warning" :
-                        "bg-destructive/10 text-destructive"
-                      }`}>
-                        {project.difficulty}
-                      </span>
-                      {project.applied && (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-success/10 text-success flex items-center gap-1">
-                          <CheckCircle className="w-3 h-3" />
-                          Applied
+          {sortedChallenges.map((project) => {
+            const isApplied = appliedChallengeIds.has(project.id);
+            
+            return (
+              <div 
+                key={project.id} 
+                className={`dashboard-card group hover:border-primary/30 transition-all ${isApplied ? "border-success/30 bg-success/5" : ""}`}
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-foreground text-background flex items-center justify-center font-bold">
+                      {project.company?.companyName?.[0] || "H"}
+                    </div>
+                    <div>
+                      <p className="font-medium text-foreground">
+                        {project.company?.companyName || "Heuristic Labs"}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${
+                          project.difficulty === "Easy" ? "bg-success/10 text-success" :
+                          project.difficulty === "Medium" ? "bg-warning/10 text-warning" :
+                          "bg-destructive/10 text-destructive"
+                        }`}>
+                          {project.difficulty}
                         </span>
-                      )}
+                        {isApplied && (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-success/10 text-success flex items-center gap-1">
+                            <CheckCircle className="w-3 h-3" />
+                            Applied
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                    {getCategoryIcon(project.category)}
+                  </div>
                 </div>
-                <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                  {project.icon}
-                </div>
-              </div>
 
-              <h3 className="font-bold text-foreground mb-2">{project.title}</h3>
-              <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{project.description}</p>
+                <h3 className="font-bold text-foreground mb-2">{project.title}</h3>
+                <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{project.description}</p>
 
-              <div className="flex flex-wrap gap-2 mb-4">
-                {project.skills.map((skill) => (
-                  <span key={skill} className="status-badge status-badge-muted text-xs">
-                    {skill}
-                  </span>
-                ))}
-              </div>
-
-              <div className="flex items-center justify-between pt-4 border-t border-border">
-                <div className="flex items-center gap-4">
-                  <span className="text-sm font-medium text-primary">{project.credits} Credits</span>
-                  <span className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    {project.deadline}
-                  </span>
-                </div>
-                <Button 
-                  variant={project.applied ? "outline" : "ghost"}
-                  size="sm"
-                  className={`gap-1 ${project.applied ? "text-success" : "text-muted-foreground hover:text-primary"}`}
-                  onClick={() => openApplyModal(project)}
-                  disabled={project.applied}
-                >
-                  {project.applied ? (
-                    <>
-                      <CheckCircle className="w-4 h-4" />
-                      Applied
-                    </>
-                  ) : (
-                    <>
-                      Apply <ArrowRight className="w-4 h-4" />
-                    </>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {project.requiredSkills.slice(0, 3).map((skill) => (
+                    <span key={skill} className="status-badge status-badge-muted text-xs">
+                      {skill}
+                    </span>
+                  ))}
+                  {project.requiredSkills.length > 3 && (
+                    <span className="status-badge status-badge-muted text-xs">
+                      +{project.requiredSkills.length - 3}
+                    </span>
                   )}
-                </Button>
+                </div>
+
+                <div className="flex items-center justify-between pt-4 border-t border-border">
+                  <div className="flex items-center gap-4">
+                    <span className="text-sm font-medium text-primary">{project.credits} Credits</span>
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {formatDeadline(project.deadline)}
+                    </span>
+                  </div>
+                  <Button 
+                    variant={isApplied ? "outline" : "ghost"}
+                    size="sm"
+                    className={`gap-1 ${isApplied ? "text-success" : "text-muted-foreground hover:text-primary"}`}
+                    onClick={() => openApplyModal(project)}
+                    disabled={isApplied}
+                  >
+                    {isApplied ? (
+                      <>
+                        <CheckCircle className="w-4 h-4" />
+                        Applied
+                      </>
+                    ) : (
+                      <>
+                        Apply <ArrowRight className="w-4 h-4" />
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -426,11 +349,13 @@ const ProjectMarketplace = () => {
             <div className="py-4">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-12 h-12 rounded-xl bg-foreground text-background flex items-center justify-center font-bold text-lg">
-                  {selectedProject.companyLogo}
+                  {selectedProject.company?.companyName?.[0] || "H"}
                 </div>
                 <div>
                   <h4 className="font-bold text-foreground">{selectedProject.title}</h4>
-                  <p className="text-sm text-muted-foreground">{selectedProject.company}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedProject.company?.companyName || "Heuristic Labs"}
+                  </p>
                 </div>
               </div>
               
@@ -449,25 +374,25 @@ const ProjectMarketplace = () => {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Deadline</span>
-                  <span className="font-medium">{selectedProject.deadline}</span>
+                  <span className="font-medium">{formatDeadline(selectedProject.deadline)}</span>
                 </div>
               </div>
 
               <p className="text-sm text-muted-foreground mt-4">
                 By applying, you commit to completing this project within the deadline. 
-                Your profile will be shared with {selectedProject.company}.
+                Your profile will be shared with {selectedProject.company?.companyName || "the company"}.
               </p>
             </div>
           )}
 
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setShowApplyModal(false)} disabled={isApplying}>
+            <Button variant="outline" onClick={() => setShowApplyModal(false)} disabled={applyToChallenge.isPending}>
               Cancel
             </Button>
-            <Button onClick={handleApply} disabled={isApplying} className="gap-2">
-              {isApplying ? (
+            <Button onClick={handleApply} disabled={applyToChallenge.isPending} className="gap-2">
+              {applyToChallenge.isPending ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin" />
                   Applying...
                 </>
               ) : (
