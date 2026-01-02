@@ -31,13 +31,17 @@ const ProtectedRoute = ({
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
-  // No role selected - redirect to role selection
+  // No role selected - redirect to role selection (NEVER default to student)
   if (!role) {
+    console.log("[ProtectedRoute] No role found, redirecting to /get-started");
     return <Navigate to="/get-started" replace />;
   }
 
   // Role doesn't match required role - redirect to correct dashboard
   if (requiredRole && role !== requiredRole) {
+    // CRITICAL: Log any cross-role routing attempt for debugging
+    console.warn(`[ProtectedRoute] Role mismatch: user has "${role}" but route requires "${requiredRole}". Redirecting to ${role} dashboard.`);
+    
     const dashboardRoutes: Record<AppRole, string> = {
       student: "/student",
       teacher: "/teacher",
@@ -46,14 +50,18 @@ const ProtectedRoute = ({
     return <Navigate to={dashboardRoutes[role]} replace />;
   }
 
-  // Not onboarded - redirect to onboarding
+  // Not onboarded - redirect to role-specific onboarding (NEVER cross-role)
   if (requireOnboarding && !isOnboarded) {
     const onboardingRoutes: Record<AppRole, string> = {
       student: "/student/onboarding",
       teacher: "/teacher/onboarding",
       company: "/company/onboarding",
     };
-    return <Navigate to={onboardingRoutes[role]} replace />;
+    
+    const targetRoute = onboardingRoutes[role];
+    console.log(`[ProtectedRoute] User not onboarded, redirecting to ${targetRoute}`);
+    
+    return <Navigate to={targetRoute} replace />;
   }
 
   return <>{children}</>;
