@@ -16,7 +16,8 @@ import {
   Github,
   Video,
   FileText,
-  Send
+  Send,
+  ShieldAlert
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
@@ -30,6 +31,7 @@ import {
 } from "@/components/ui/dialog";
 import { useTeacherSubmissions, useExemptionRequests } from "@/hooks/useSubmissions";
 import { getGradeLabel, exemptionRequestFromDb } from "@/lib/transformers";
+import AuthenticityBadge from "@/components/student/AuthenticityBadge";
 
 const AssessmentApproval = () => {
   const [activeTab, setActiveTab] = useState<"grades" | "exemptions">("grades");
@@ -75,6 +77,11 @@ const AssessmentApproval = () => {
       githubUrl: sub.files_url || "",
       videoUrl: sub.video_url || "",
       artifactFiles: sub.artifactFiles || [],
+      // Authenticity data
+      authenticityScore: sub.authenticity_score,
+      authenticityBreakdown: sub.authenticity_breakdown,
+      flaggedForReview: sub.flagged_for_review || false,
+      flagReasons: sub.flag_reasons || [],
     }));
   }, [rawPendingGrades]);
 
@@ -416,6 +423,19 @@ const AssessmentApproval = () => {
                             Disputed
                           </span>
                         )}
+                        {item.flaggedForReview && (
+                          <span className="status-badge bg-destructive/10 text-destructive">
+                            <ShieldAlert className="w-3 h-3 mr-1" />
+                            Review Needed
+                          </span>
+                        )}
+                        <AuthenticityBadge 
+                          score={item.authenticityScore} 
+                          breakdown={item.authenticityBreakdown}
+                          flagged={item.flaggedForReview}
+                          flagReasons={item.flagReasons}
+                          size="sm"
+                        />
                       </div>
                       <p className="text-sm text-muted-foreground">{item.project}</p>
                       <p className="text-xs text-muted-foreground">Company: {item.company} • {item.submittedAt}</p>

@@ -303,8 +303,14 @@ const SubmissionReview = () => {
                   
                   {/* Authenticity Indicators */}
                   <AuthenticityIndicators 
+                    submissionId={submission.id}
                     githubUrl={submission.filesUrl} 
+                    videoUrl={submission.videoUrl}
                     submittedAt={submission.submittedAt}
+                    authenticityScore={submission.authenticityScore}
+                    authenticityBreakdown={submission.authenticityBreakdown}
+                    flagged={submission.flaggedForReview}
+                    flagReasons={submission.flagReasons}
                   />
 
                   {/* Grade Selection */}
