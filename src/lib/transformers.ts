@@ -88,6 +88,13 @@ export function challengeToDb(data: ChallengeInput, companyId: string) {
 
 // ============= SUBMISSION TRANSFORMERS =============
 
+export interface AuthenticityBreakdown {
+  github?: { score: number; details: string };
+  video?: { score: number; details: string };
+  timing?: { score: number; details: string };
+  overall?: number;
+}
+
 export interface Submission {
   id: string;
   studentId: string;
@@ -104,6 +111,14 @@ export interface Submission {
   gradedAt: string | null;
   approvedAt: string | null;
   createdAt: string;
+  // Authenticity fields
+  authenticityScore: number | null;
+  authenticityBreakdown: AuthenticityBreakdown | null;
+  githubRepoUrl: string | null;
+  githubVerifiedAt: string | null;
+  videoVerifiedAt: string | null;
+  flaggedForReview: boolean;
+  flagReasons: string[];
   challenge?: {
     id: string;
     title: string;
@@ -122,11 +137,7 @@ export interface Submission {
 }
 
 export function submissionFromDb(
-  row: DbSubmission & {
-    challenge?: { id: string; title: string; credits: number; company_id: string } | null;
-    studentProfile?: { first_name: string; last_name: string; email: string } | null;
-    student?: { user_id: string; university_name: string | null } | null;
-  }
+  row: any
 ): Submission {
   return {
     id: row.id,
@@ -144,6 +155,14 @@ export function submissionFromDb(
     gradedAt: row.graded_at,
     approvedAt: row.approved_at,
     createdAt: row.created_at,
+    // Authenticity fields
+    authenticityScore: row.authenticity_score ?? null,
+    authenticityBreakdown: row.authenticity_breakdown ?? null,
+    githubRepoUrl: row.github_repo_url ?? null,
+    githubVerifiedAt: row.github_verified_at ?? null,
+    videoVerifiedAt: row.video_verified_at ?? null,
+    flaggedForReview: row.flagged_for_review ?? false,
+    flagReasons: row.flag_reasons ?? [],
     challenge: row.challenge ? {
       id: row.challenge.id,
       title: row.challenge.title,

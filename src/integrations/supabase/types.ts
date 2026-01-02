@@ -44,6 +44,44 @@ export type Database = {
         }
         Relationships: []
       }
+      authenticity_logs: {
+        Row: {
+          check_result: Json
+          check_type: string
+          created_at: string
+          id: string
+          score_contribution: number
+          submission_id: string
+          verified_at: string
+        }
+        Insert: {
+          check_result: Json
+          check_type: string
+          created_at?: string
+          id?: string
+          score_contribution?: number
+          submission_id: string
+          verified_at?: string
+        }
+        Update: {
+          check_result?: Json
+          check_type?: string
+          created_at?: string
+          id?: string
+          score_contribution?: number
+          submission_id?: string
+          verified_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "authenticity_logs_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       challenge_attachments: {
         Row: {
           challenge_id: string
@@ -645,10 +683,16 @@ export type Database = {
         Row: {
           application_id: string
           approved_at: string | null
+          authenticity_breakdown: Json | null
+          authenticity_score: number | null
           challenge_id: string
           company_feedback: string | null
           created_at: string
           files_url: string | null
+          flag_reasons: string[] | null
+          flagged_for_review: boolean | null
+          github_repo_url: string | null
+          github_verified_at: string | null
           grade: number | null
           graded_at: string | null
           id: string
@@ -658,14 +702,21 @@ export type Database = {
           submitted_at: string | null
           teacher_feedback: string | null
           video_url: string | null
+          video_verified_at: string | null
         }
         Insert: {
           application_id: string
           approved_at?: string | null
+          authenticity_breakdown?: Json | null
+          authenticity_score?: number | null
           challenge_id: string
           company_feedback?: string | null
           created_at?: string
           files_url?: string | null
+          flag_reasons?: string[] | null
+          flagged_for_review?: boolean | null
+          github_repo_url?: string | null
+          github_verified_at?: string | null
           grade?: number | null
           graded_at?: string | null
           id?: string
@@ -675,14 +726,21 @@ export type Database = {
           submitted_at?: string | null
           teacher_feedback?: string | null
           video_url?: string | null
+          video_verified_at?: string | null
         }
         Update: {
           application_id?: string
           approved_at?: string | null
+          authenticity_breakdown?: Json | null
+          authenticity_score?: number | null
           challenge_id?: string
           company_feedback?: string | null
           created_at?: string
           files_url?: string | null
+          flag_reasons?: string[] | null
+          flagged_for_review?: boolean | null
+          github_repo_url?: string | null
+          github_verified_at?: string | null
           grade?: number | null
           graded_at?: string | null
           id?: string
@@ -692,6 +750,7 @@ export type Database = {
           submitted_at?: string | null
           teacher_feedback?: string | null
           video_url?: string | null
+          video_verified_at?: string | null
         }
         Relationships: [
           {
