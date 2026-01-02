@@ -222,6 +222,20 @@ export const useTeacherSubmissions = () => {
         .select("user_id, company_name")
         .in("user_id", companyIds);
 
+      // Fetch submission files for artifacts
+      const submissionIds = data?.map(s => s.id) || [];
+      const { data: submissionFiles } = await supabase
+        .from("submission_files")
+        .select("submission_id, file_name, file_path, file_type")
+        .in("submission_id", submissionIds);
+
+      const filesMap = new Map<string, typeof submissionFiles>();
+      submissionFiles?.forEach(file => {
+        const existing = filesMap.get(file.submission_id) || [];
+        existing.push(file);
+        filesMap.set(file.submission_id, existing);
+      });
+
       const profilesMap = new Map(profiles?.map(p => [p.id, p]) || []);
       const companiesMap = new Map(companies?.map(c => [c.user_id, c]) || []);
 
@@ -229,6 +243,7 @@ export const useTeacherSubmissions = () => {
         ...submission,
         studentProfile: profilesMap.get(submission.student_id) || null,
         companyProfile: submission.challenge ? companiesMap.get(submission.challenge.company_id) || null : null,
+        artifactFiles: filesMap.get(submission.id) || [],
       }));
     },
     enabled: !!user,
