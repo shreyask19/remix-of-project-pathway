@@ -116,7 +116,7 @@ export const useChallenges = (options: UseChallengesOptions = {}) => {
     enabled: !!user && role === "student",
   });
 
-  // Apply to a challenge
+  // Apply to a challenge with optimistic update
   const applyToChallenge = useMutation({
     mutationFn: async ({ challengeId, coverLetter }: { challengeId: string; coverLetter?: string }) => {
       if (!user) throw new Error("Not authenticated");
@@ -134,7 +134,34 @@ export const useChallenges = (options: UseChallengesOptions = {}) => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    // Optimistic update for instant feedback
+    onMutate: async ({ challengeId, coverLetter }) => {
+      await queryClient.cancelQueries({ queryKey: ["applications", user?.id] });
+      
+      const previousApplications = queryClient.getQueryData(["applications", user?.id]);
+      
+      // Optimistically add the application
+      queryClient.setQueryData(["applications", user?.id], (old: Application[] = []) => [
+        {
+          id: `temp-${Date.now()}`,
+          student_id: user?.id || "",
+          challenge_id: challengeId,
+          status: "pending",
+          cover_letter: coverLetter || "",
+          applied_at: new Date().toISOString(),
+        },
+        ...old,
+      ]);
+      
+      return { previousApplications };
+    },
+    onError: (err, variables, context) => {
+      // Rollback on error
+      if (context?.previousApplications) {
+        queryClient.setQueryData(["applications", user?.id], context.previousApplications);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["applications"] });
       queryClient.invalidateQueries({ queryKey: ["challenges"] });
     },

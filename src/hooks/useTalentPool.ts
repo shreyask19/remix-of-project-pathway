@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -18,10 +18,19 @@ export interface TalentStudent {
   available: boolean;
 }
 
-export const useTalentPool = (options?: { minCredits?: number; skills?: string[] }) => {
+interface UseTalentPoolOptions {
+  minCredits?: number;
+  skills?: string[];
+  sortBy?: "credits" | "projects" | "name";
+  availableOnly?: boolean;
+}
+
+const PAGE_SIZE = 20;
+
+export const useTalentPool = (options?: UseTalentPoolOptions) => {
   const { user } = useAuth();
 
-  const { data: talents, isLoading } = useQuery({
+  const { data: talents, isLoading, refetch } = useQuery({
     queryKey: ["talentPool", options],
     queryFn: async () => {
       // First get student profiles with credits > threshold
@@ -98,19 +107,115 @@ export const useTalentPool = (options?: { minCredits?: number; skills?: string[]
       });
     },
     enabled: !!user,
+    staleTime: 60 * 1000, // 1 minute cache
   });
 
-  // Filter by skills if provided
-  const filteredTalents = options?.skills?.length
-    ? talents?.filter(t => 
-        options.skills!.some(skill => 
-          t.skills.some(s => s.toLowerCase().includes(skill.toLowerCase()))
-        )
+  // Filter and sort talents
+  let filteredTalents = talents || [];
+
+  // Filter by skills
+  if (options?.skills?.length) {
+    filteredTalents = filteredTalents.filter(t => 
+      options.skills!.some(skill => 
+        t.skills.some(s => s.toLowerCase().includes(skill.toLowerCase()))
       )
-    : talents;
+    );
+  }
+
+  // Filter by availability
+  if (options?.availableOnly) {
+    filteredTalents = filteredTalents.filter(t => t.available);
+  }
+
+  // Sort
+  if (options?.sortBy) {
+    filteredTalents = [...filteredTalents].sort((a, b) => {
+      switch (options.sortBy) {
+        case "credits":
+          return b.credits - a.credits;
+        case "projects":
+          return b.projectsCompleted - a.projectsCompleted;
+        case "name":
+          return `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`);
+        default:
+          return 0;
+      }
+    });
+  }
 
   return {
-    talents: filteredTalents || [],
+    talents: filteredTalents,
     isLoading,
+    refetch,
   };
+};
+
+// Infinite query version for larger datasets
+export const useInfiniteTalentPool = (options?: UseTalentPoolOptions) => {
+  const { user } = useAuth();
+
+  return useInfiniteQuery({
+    queryKey: ["infiniteTalentPool", options],
+    queryFn: async ({ pageParam = 0 }) => {
+      const start = pageParam * PAGE_SIZE;
+      const end = start + PAGE_SIZE - 1;
+
+      let query = supabase
+        .from("student_profiles")
+        .select(`
+          id,
+          user_id,
+          university_name,
+          university_program,
+          graduation_year,
+          existing_skills,
+          total_credits,
+          profiles!student_profiles_user_id_fkey (
+            first_name,
+            last_name,
+            email
+          )
+        `, { count: "exact" })
+        .gte("total_credits", options?.minCredits || 0)
+        .order("total_credits", { ascending: false })
+        .range(start, end);
+
+      const { data: students, error, count } = await query;
+      if (error) throw error;
+
+      if (!students || students.length === 0) {
+        return { talents: [], totalCount: count || 0, nextPage: undefined };
+      }
+
+      // Transform students
+      const talents = students.map((s): TalentStudent => {
+        const profile = Array.isArray(s.profiles) ? s.profiles[0] : s.profiles;
+        return {
+          id: s.id,
+          userId: s.user_id,
+          firstName: profile?.first_name || "",
+          lastName: profile?.last_name || "",
+          email: profile?.email || "",
+          university: s.university_name,
+          program: s.university_program,
+          graduationYear: s.graduation_year,
+          skills: s.existing_skills || [],
+          credits: s.total_credits || 0,
+          projectsCompleted: 0,
+          avgGrade: "N/A",
+          available: true,
+        };
+      });
+
+      return {
+        talents,
+        totalCount: count || 0,
+        nextPage: students.length === PAGE_SIZE ? pageParam + 1 : undefined,
+      };
+    },
+    getNextPageParam: (lastPage) => lastPage.nextPage,
+    initialPageParam: 0,
+    enabled: !!user,
+    staleTime: 60 * 1000,
+  });
 };
