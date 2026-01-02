@@ -19,6 +19,11 @@ export interface StudentProfileData {
   hoursPerWeek: string;
 }
 
+export interface SkillGraphData {
+  category: string;
+  score: number;
+}
+
 export const useStudentProfile = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -55,6 +60,59 @@ export const useStudentProfile = () => {
       return data?.total_credits ?? 0;
     },
     enabled: !!user,
+  });
+
+  // Fetch industry readiness score
+  const { data: industryReadinessScore } = useQuery({
+    queryKey: ["industryReadinessScore", user?.id],
+    queryFn: async () => {
+      if (!user) return 0;
+      
+      const { data, error } = await supabase
+        .from("student_profiles")
+        .select("industry_readiness_score")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data?.industry_readiness_score ?? 0;
+    },
+    enabled: !!user,
+  });
+
+  // Fetch skill graph data
+  const { data: skillGraphData } = useQuery({
+    queryKey: ["skillGraphData", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      
+      const { data, error } = await supabase
+        .from("skill_graph_data")
+        .select("category, score")
+        .eq("student_id", user.id);
+
+      if (error) throw error;
+      return (data || []) as SkillGraphData[];
+    },
+    enabled: !!user,
+  });
+
+  // Mutation to trigger industry readiness recalculation
+  const recalculateReadiness = useMutation({
+    mutationFn: async () => {
+      if (!user) throw new Error("Not authenticated");
+      
+      const { data, error } = await supabase.functions.invoke("calculate-industry-readiness", {
+        body: { studentId: user.id },
+      });
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["industryReadinessScore"] });
+      queryClient.invalidateQueries({ queryKey: ["skillGraphData"] });
+    },
   });
 
   const saveProfile = useMutation({
@@ -96,7 +154,10 @@ export const useStudentProfile = () => {
   return {
     profile,
     credits,
+    industryReadinessScore,
+    skillGraphData,
     isLoading,
     saveProfile,
+    recalculateReadiness,
   };
 };

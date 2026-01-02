@@ -16,12 +16,14 @@ export interface TalentStudent {
   projectsCompleted: number;
   avgGrade: string;
   available: boolean;
+  industryReadinessScore: number;
 }
 
 interface UseTalentPoolOptions {
   minCredits?: number;
+  minReadinessScore?: number;
   skills?: string[];
-  sortBy?: "credits" | "projects" | "name";
+  sortBy?: "credits" | "projects" | "name" | "readiness";
   availableOnly?: boolean;
 }
 
@@ -44,6 +46,7 @@ export const useTalentPool = (options?: UseTalentPoolOptions) => {
           graduation_year,
           existing_skills,
           total_credits,
+          industry_readiness_score,
           profiles!student_profiles_user_id_fkey (
             first_name,
             last_name,
@@ -53,6 +56,11 @@ export const useTalentPool = (options?: UseTalentPoolOptions) => {
         .gte("total_credits", options?.minCredits || 0)
         .order("total_credits", { ascending: false })
         .limit(50);
+
+      // Filter by minimum readiness score
+      if (options?.minReadinessScore && options.minReadinessScore > 0) {
+        query = query.gte("industry_readiness_score", options.minReadinessScore);
+      }
 
       const { data: students, error: studentsError } = await query;
       if (studentsError) throw studentsError;
@@ -103,6 +111,7 @@ export const useTalentPool = (options?: UseTalentPoolOptions) => {
           projectsCompleted: stats.count,
           avgGrade: stats.excellentCount > stats.count / 2 ? "Excellent" : stats.count > 0 ? "Satisfied" : "N/A",
           available: !hiredStudents.has(s.user_id),
+          industryReadinessScore: s.industry_readiness_score || 0,
         };
       });
     },
@@ -135,6 +144,8 @@ export const useTalentPool = (options?: UseTalentPoolOptions) => {
           return b.credits - a.credits;
         case "projects":
           return b.projectsCompleted - a.projectsCompleted;
+        case "readiness":
+          return b.industryReadinessScore - a.industryReadinessScore;
         case "name":
           return `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`);
         default:
@@ -204,6 +215,7 @@ export const useInfiniteTalentPool = (options?: UseTalentPoolOptions) => {
           projectsCompleted: 0,
           avgGrade: "N/A",
           available: true,
+          industryReadinessScore: 0,
         };
       });
 
