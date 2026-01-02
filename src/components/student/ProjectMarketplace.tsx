@@ -34,8 +34,9 @@ import { useChallenges, type Challenge } from "@/hooks/useChallenges";
 import { formatDeadline } from "@/lib/transformers";
 import { useDebouncedSearch } from "@/hooks/useDebouncedSearch";
 import { MarketplaceGridSkeleton } from "@/components/ui/loading-skeleton";
+import HeartbeatIndicator from "@/components/shared/HeartbeatIndicator";
 
-type ChallengeWithCompany = Challenge & { company: { company_name: string; logo_url: string } | null };
+type ChallengeWithCompany = Challenge & { company: { company_name: string; logo_url: string; avg_review_time_hours?: number | null } | null };
 
 const ProjectMarketplace = () => {
   const [activeFilter, setActiveFilter] = useState("all");
@@ -259,9 +260,12 @@ const ProjectMarketplace = () => {
                       {project.company?.company_name?.[0] || "H"}
                     </div>
                     <div>
-                      <p className="font-medium text-foreground">
-                        {project.company?.company_name || "Heuristic Labs"}
-                      </p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="font-medium text-foreground">
+                          {project.company?.company_name || "Heuristic Labs"}
+                        </p>
+                        <HeartbeatIndicator avgReviewTimeHours={project.company?.avg_review_time_hours} />
+                      </div>
                       <div className="flex items-center gap-2">
                         <span className={`text-xs px-2 py-0.5 rounded-full ${
                           project.difficulty === "Easy" ? "bg-success/10 text-success" :
