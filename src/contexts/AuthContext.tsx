@@ -5,9 +5,20 @@ import { useToast } from "@/hooks/use-toast";
 
 type AppRole = "student" | "teacher" | "company";
 
+export interface UserProfile {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string | null;
+  avatarUrl: string | null;
+  institutionId: string | null;
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
+  profile: UserProfile | null;
   role: AppRole | null;
   isOnboarded: boolean;
   isLoading: boolean;
@@ -16,6 +27,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   setRole: (role: AppRole) => Promise<{ error: Error | null }>;
   completeOnboarding: () => Promise<{ error: Error | null }>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -23,19 +35,18 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [role, setRoleState] = useState<AppRole | null>(null);
   const [isOnboarded, setIsOnboarded] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
-    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         
-        // Defer fetching user data with setTimeout
         if (session?.user) {
           setTimeout(() => {
             fetchUserData(session.user.id);
@@ -43,12 +54,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } else {
           setRoleState(null);
           setIsOnboarded(false);
+          setProfile(null);
           setIsLoading(false);
         }
       }
     );
 
-    // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -65,7 +76,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchUserData = async (userId: string) => {
     try {
-      // Fetch user role
+      // Fetch user role from database
       const { data: roleData } = await supabase
         .from("user_roles")
         .select("role")
@@ -76,20 +87,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setRoleState(roleData.role as AppRole);
       }
 
-      // Fetch profile for onboarding status
+      // Fetch profile from database (source of truth)
       const { data: profileData } = await supabase
         .from("profiles")
-        .select("is_onboarded")
+        .select("id, first_name, last_name, email, phone, avatar_url, is_onboarded, institution_id")
         .eq("id", userId)
         .maybeSingle();
 
       if (profileData) {
         setIsOnboarded(profileData.is_onboarded);
+        setProfile({
+          id: profileData.id,
+          firstName: profileData.first_name,
+          lastName: profileData.last_name,
+          email: profileData.email,
+          phone: profileData.phone,
+          avatarUrl: profileData.avatar_url,
+          institutionId: profileData.institution_id,
+        });
       }
     } catch (error) {
       console.error("Error fetching user data:", error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const refreshProfile = async () => {
+    if (user) {
+      await fetchUserData(user.id);
     }
   };
 
@@ -137,8 +163,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signOut = async () => {
     try {
       await supabase.auth.signOut();
+      // Clear all state - no localStorage needed
       setRoleState(null);
       setIsOnboarded(false);
+      setProfile(null);
     } catch (error) {
       console.error("Sign out error:", error);
       toast({
@@ -191,6 +219,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       value={{
         user,
         session,
+        profile,
         role,
         isOnboarded,
         isLoading,
@@ -199,6 +228,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         signOut,
         setRole,
         completeOnboarding,
+        refreshProfile,
       }}
     >
       {children}

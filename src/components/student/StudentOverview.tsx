@@ -11,41 +11,47 @@ import {
   Calendar,
   BookOpen
 } from "lucide-react";
-import { useUser } from "@/contexts/UserContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { useStudentProfile } from "@/hooks/useStudentProfile";
 
 const StudentOverview = () => {
-  const { user } = useUser();
+  const { profile: authProfile } = useAuth();
+  const { profile: studentProfile, credits } = useStudentProfile();
   
+  const totalCredits = credits || 0;
+  const exemptionThreshold = 300;
+  const creditsProgress = Math.min((totalCredits / exemptionThreshold) * 100, 100);
+
   const stats = [
     {
       label: "Total Credits",
-      value: "245",
-      subValue: "/300",
-      progress: 82,
-      badge: "82% to Exemption",
+      value: totalCredits.toString(),
+      subValue: `/${exemptionThreshold}`,
+      progress: creditsProgress,
+      badge: `${Math.round(creditsProgress)}% to Exemption`,
       icon: <Award className="w-5 h-5" />,
       gradient: "from-primary/20 to-primary/5",
     },
     {
       label: "Projects Completed",
-      value: "8",
-      badge: "↑ +2 this month",
+      value: "0",
+      badge: "Start your first project",
       badgeColor: "text-primary",
       icon: <Briefcase className="w-5 h-5" />,
       gradient: "from-primary/15 to-primary/5",
     },
     {
       label: "Skill Score",
-      value: "94%",
-      badge: "Top 5%",
+      value: "—",
+      badge: "Complete projects to earn",
       badgeColor: "text-primary/80",
       icon: <Star className="w-5 h-5" />,
       gradient: "from-primary/10 to-primary/5",
     },
     {
       label: "Current Semester",
-      value: user?.currentSemester ? `Sem ${user.currentSemester}` : "Sem 5",
-      badge: "On Track",
+      value: studentProfile?.current_semester ? `Sem ${studentProfile.current_semester}` : "—",
+      badge: studentProfile?.current_semester ? "On Track" : "Set in profile",
       badgeColor: "text-primary",
       icon: <TrendingUp className="w-5 h-5" />,
       gradient: "from-primary/20 to-primary/5",
@@ -53,23 +59,19 @@ const StudentOverview = () => {
   ];
 
   const examExemptionStatus = {
-    status: "eligible",
-    creditsNeeded: 300,
-    currentCredits: 245,
-    message: "55 more credits to unlock exam exemption request",
+    status: totalCredits >= exemptionThreshold ? "eligible" : "not_eligible",
+    creditsNeeded: exemptionThreshold,
+    currentCredits: totalCredits,
+    message: totalCredits >= exemptionThreshold 
+      ? "You're eligible to request exam exemption!" 
+      : `${exemptionThreshold - totalCredits} more credits to unlock exam exemption request`,
   };
 
   const recentActivity = [
-    { icon: <CheckCircle className="w-4 h-4 text-primary" />, text: "Submitted Payment API project", time: "2 hours ago" },
-    { icon: <Zap className="w-4 h-4 text-primary/70" />, text: "Earned 15 credits from Stripe challenge", time: "Yesterday" },
-    { icon: <Star className="w-4 h-4 text-primary" />, text: "Received 'Excellent' grade from Revolut", time: "2 days ago" },
-    { icon: <BookOpen className="w-4 h-4 text-muted-foreground" />, text: "Started new Airbnb project", time: "3 days ago" },
+    { icon: <BookOpen className="w-4 h-4 text-muted-foreground" />, text: "No recent activity yet", time: "Browse projects to get started" },
   ];
 
-  const upcomingDeadlines = [
-    { project: "Fintech App Redesign", company: "Revolut", daysLeft: 4 },
-    { project: "API Documentation", company: "Stripe", daysLeft: 7 },
-  ];
+  const upcomingDeadlines: { project: string; company: string; daysLeft: number }[] = [];
 
   return (
     <div className="space-y-6">
@@ -90,7 +92,7 @@ const StudentOverview = () => {
               {stat.value}
               {stat.subValue && <span className="text-muted-foreground font-normal">{stat.subValue}</span>}
             </p>
-            {stat.progress && (
+            {stat.progress !== undefined && (
               <Progress value={stat.progress} className="h-1.5 mt-3" />
             )}
           </div>
@@ -108,8 +110,8 @@ const StudentOverview = () => {
               <h3 className="font-bold text-foreground">Exam Exemption Status</h3>
               <p className="text-sm text-muted-foreground">Build projects, earn credits, skip exams</p>
             </div>
-            <span className="status-badge bg-primary/10 text-primary">
-              Almost Eligible
+            <span className={`status-badge ${examExemptionStatus.status === "eligible" ? "bg-success/10 text-success" : "bg-primary/10 text-primary"}`}>
+              {examExemptionStatus.status === "eligible" ? "Eligible" : "In Progress"}
             </span>
           </div>
 
@@ -123,7 +125,7 @@ const StudentOverview = () => {
             <div className="h-3 bg-secondary rounded-full overflow-hidden">
               <div 
                 className="h-full bg-gradient-to-r from-primary to-primary/70 rounded-full transition-all"
-                style={{ width: `${(examExemptionStatus.currentCredits / examExemptionStatus.creditsNeeded) * 100}%` }}
+                style={{ width: `${creditsProgress}%` }}
               />
             </div>
             <p className="text-sm text-muted-foreground">{examExemptionStatus.message}</p>
@@ -131,25 +133,25 @@ const StudentOverview = () => {
 
           {/* Milestones */}
           <div className="grid grid-cols-3 gap-4">
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-primary/5 border border-primary/20">
-              <CheckCircle className="w-5 h-5 text-primary" />
+            <div className={`flex items-center gap-3 p-3 rounded-xl ${totalCredits > 0 ? "bg-primary/5 border border-primary/20" : "bg-muted border border-border"}`}>
+              {totalCredits > 0 ? <CheckCircle className="w-5 h-5 text-primary" /> : <Clock className="w-5 h-5 text-muted-foreground" />}
               <div>
-                <p className="text-xs text-muted-foreground">Internal Assessment</p>
-                <p className="font-medium text-foreground text-sm">Completed</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-primary/10 border border-primary/20">
-              <Clock className="w-5 h-5 text-primary" />
-              <div>
-                <p className="text-xs text-muted-foreground">Credit Threshold</p>
-                <p className="font-medium text-foreground text-sm">55 more needed</p>
+                <p className="text-xs text-muted-foreground">First Project</p>
+                <p className="font-medium text-foreground text-sm">{totalCredits > 0 ? "Completed" : "Pending"}</p>
               </div>
             </div>
             <div className="flex items-center gap-3 p-3 rounded-xl bg-muted border border-border">
-              <Target className="w-5 h-5 text-muted-foreground" />
+              <Clock className="w-5 h-5 text-muted-foreground" />
+              <div>
+                <p className="text-xs text-muted-foreground">Credit Threshold</p>
+                <p className="font-medium text-foreground text-sm">{exemptionThreshold - totalCredits} more needed</p>
+              </div>
+            </div>
+            <div className={`flex items-center gap-3 p-3 rounded-xl ${examExemptionStatus.status === "eligible" ? "bg-success/5 border border-success/20" : "bg-muted border border-border"}`}>
+              <Target className={`w-5 h-5 ${examExemptionStatus.status === "eligible" ? "text-success" : "text-muted-foreground"}`} />
               <div>
                 <p className="text-xs text-muted-foreground">Exam Exemption</p>
-                <p className="font-medium text-foreground text-sm">Locked</p>
+                <p className="font-medium text-foreground text-sm">{examExemptionStatus.status === "eligible" ? "Unlocked" : "Locked"}</p>
               </div>
             </div>
           </div>
@@ -180,19 +182,23 @@ const StudentOverview = () => {
               Upcoming Deadlines
             </h3>
             <div className="space-y-3">
-              {upcomingDeadlines.map((deadline, idx) => (
-                <div key={idx} className="flex items-center justify-between p-3 rounded-xl bg-secondary/50">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{deadline.project}</p>
-                    <p className="text-xs text-muted-foreground">{deadline.company}</p>
+              {upcomingDeadlines.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No upcoming deadlines. Apply to projects to get started!</p>
+              ) : (
+                upcomingDeadlines.map((deadline, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-3 rounded-xl bg-secondary/50">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{deadline.project}</p>
+                      <p className="text-xs text-muted-foreground">{deadline.company}</p>
+                    </div>
+                    <span className={`text-xs font-medium px-2 py-1 rounded-full ${
+                      deadline.daysLeft <= 3 ? "bg-primary/20 text-primary" : "bg-primary/10 text-primary/80"
+                    }`}>
+                      {deadline.daysLeft}d left
+                    </span>
                   </div>
-                  <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-                    deadline.daysLeft <= 3 ? "bg-primary/20 text-primary" : "bg-primary/10 text-primary/80"
-                  }`}>
-                    {deadline.daysLeft}d left
-                  </span>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         </div>

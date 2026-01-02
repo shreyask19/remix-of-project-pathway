@@ -6,7 +6,7 @@ import HiringSection from "@/components/student/HiringSection";
 import Portfolio from "@/components/student/Portfolio";
 import HeuristicLogo from "@/components/HeuristicLogo";
 import NotificationDropdown from "@/components/NotificationDropdown";
-import { useUser } from "@/contexts/UserContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { 
   LayoutDashboard, 
   Briefcase, 
@@ -23,12 +23,12 @@ import { useNavigate } from "react-router-dom";
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
-  const { user, setUser, setIsOnboarded } = useUser();
+  const { profile, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
 
-  const userName = user?.firstName || "Student";
-  const userInitials = user?.firstName && user?.lastName 
-    ? `${user.firstName[0]}${user.lastName[0]}`
+  const userName = profile?.firstName || "Student";
+  const userInitials = profile?.firstName && profile?.lastName 
+    ? `${profile.firstName[0]}${profile.lastName[0]}`
     : "ST";
 
   const sidebarSections = [
@@ -38,7 +38,7 @@ const StudentDashboard = () => {
         { label: "Projects", icon: <Briefcase className="w-5 h-5" />, id: "projects" },
         { label: "Submissions", icon: <Upload className="w-5 h-5" />, id: "submissions" },
         { label: "Credits", icon: <Award className="w-5 h-5" />, id: "credits" },
-        { label: "Hiring", icon: <Building2 className="w-5 h-5" />, id: "hiring", badge: 3 },
+        { label: "Hiring", icon: <Building2 className="w-5 h-5" />, id: "hiring" },
         { label: "Portfolio", icon: <FolderOpen className="w-5 h-5" />, id: "portfolio" },
       ],
     },
@@ -49,9 +49,8 @@ const StudentDashboard = () => {
     },
   ];
 
-  const handleLogout = () => {
-    setUser(null);
-    setIsOnboarded(false);
+  const handleLogout = async () => {
+    await signOut();
     navigate("/");
   };
 
@@ -100,11 +99,6 @@ const StudentDashboard = () => {
                     >
                       {item.icon}
                       <span>{item.label}</span>
-                      {item.badge && (
-                        <span className="ml-auto w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-medium">
-                          {item.badge}
-                        </span>
-                      )}
                     </button>
                   </li>
                 ))}
@@ -120,9 +114,9 @@ const StudentDashboard = () => {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-foreground truncate">
-                {user?.firstName} {user?.lastName}
+                {profile?.firstName} {profile?.lastName}
               </p>
-              <p className="text-xs text-muted-foreground truncate">{user?.email || "student@university.edu"}</p>
+              <p className="text-xs text-muted-foreground truncate">{profile?.email || "student@university.edu"}</p>
             </div>
           </div>
           <Button 

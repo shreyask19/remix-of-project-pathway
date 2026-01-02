@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { useUser } from "@/contexts/UserContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import HeuristicLogo from "@/components/HeuristicLogo";
 import NotificationDropdown from "@/components/NotificationDropdown";
@@ -10,6 +10,7 @@ import AssessmentApproval from "@/components/teacher/AssessmentApproval";
 import AlertsSection from "@/components/teacher/AlertsSection";
 import AcademicControl from "@/components/teacher/AcademicControl";
 import TeacherAnalytics from "@/components/teacher/TeacherAnalytics";
+import { useTeacherSubmissions, useExemptionRequests } from "@/hooks/useSubmissions";
 import { 
   LayoutDashboard, 
   Users, 
@@ -22,13 +23,17 @@ import {
 
 const TeacherDashboard = () => {
   const navigate = useNavigate();
-  const { user, setUser, setIsOnboarded } = useUser();
+  const { profile, signOut } = useAuth();
+  const { pendingGrades } = useTeacherSubmissions();
+  const { requests: exemptionRequests } = useExemptionRequests();
   const [activeTab, setActiveTab] = useState("overview");
 
-  const userName = user?.firstName || "Professor";
-  const userInitials = user?.firstName && user?.lastName 
-    ? `${user.firstName[0]}${user.lastName[0]}`
+  const userName = profile?.firstName || "Professor";
+  const userInitials = profile?.firstName && profile?.lastName 
+    ? `${profile.firstName[0]}${profile.lastName[0]}`
     : "PR";
+
+  const pendingCount = (pendingGrades?.length || 0) + (exemptionRequests?.filter(r => r.status === "pending").length || 0);
 
   const sidebarSections = [
     {
@@ -37,8 +42,8 @@ const TeacherDashboard = () => {
         { label: "Overview", icon: <LayoutDashboard className="w-5 h-5" />, id: "overview" },
         { label: "Students", icon: <Users className="w-5 h-5" />, id: "students" },
         { label: "Analytics", icon: <BarChart3 className="w-5 h-5" />, id: "analytics" },
-        { label: "Approvals", icon: <CheckSquare className="w-5 h-5" />, id: "approvals", badge: 11 },
-        { label: "Alerts", icon: <Bell className="w-5 h-5" />, id: "alerts", badge: 6 },
+        { label: "Approvals", icon: <CheckSquare className="w-5 h-5" />, id: "approvals", badge: pendingCount },
+        { label: "Alerts", icon: <Bell className="w-5 h-5" />, id: "alerts" },
       ],
     },
     {
@@ -49,9 +54,8 @@ const TeacherDashboard = () => {
     },
   ];
 
-  const handleLogout = () => {
-    setUser(null);
-    setIsOnboarded(false);
+  const handleLogout = async () => {
+    await signOut();
     navigate("/");
   };
 
@@ -119,7 +123,7 @@ const TeacherDashboard = () => {
                     >
                       {item.icon}
                       <span>{item.label}</span>
-                      {item.badge && (
+                      {item.badge && item.badge > 0 && (
                         <span className="ml-auto w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-medium">
                           {item.badge}
                         </span>
@@ -139,9 +143,9 @@ const TeacherDashboard = () => {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-foreground truncate">
-                {user?.firstName} {user?.lastName}
+                {profile?.firstName} {profile?.lastName}
               </p>
-              <p className="text-xs text-muted-foreground truncate">{user?.department || "Department"}</p>
+              <p className="text-xs text-muted-foreground truncate">Educator</p>
             </div>
           </div>
           <Button 
