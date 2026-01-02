@@ -16,6 +16,8 @@ export interface Challenge {
   max_applicants: number;
   current_applicants: number;
   created_at: string;
+  instructions?: string;
+  restrictions?: string[];
   company?: {
     company_name: string;
     logo_url: string;
@@ -151,9 +153,12 @@ export const useChallenges = (options: UseChallengesOptions = {}) => {
           description: challengeData.description || "",
           difficulty: challengeData.difficulty || "Medium",
           credits: challengeData.credits || 50,
-          deadline: challengeData.deadline,
+          deadline: challengeData.deadline || null,
           required_skills: challengeData.required_skills || [],
           category: challengeData.category || "",
+          status: (challengeData.status as "active" | "draft" | "closed") || "active",
+          instructions: challengeData.instructions || "",
+          restrictions: challengeData.restrictions || [],
         })
         .select()
         .single();
