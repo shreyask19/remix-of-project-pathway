@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { useUser } from "@/contexts/UserContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import HeuristicLogo from "@/components/HeuristicLogo";
 import NotificationDropdown from "@/components/NotificationDropdown";
@@ -21,15 +21,17 @@ import {
   Plus,
   LogOut
 } from "lucide-react";
+import { useCompanySubmissions } from "@/hooks/useSubmissions";
 
 const CompanyDashboard = () => {
   const navigate = useNavigate();
-  const { user, setUser, setIsOnboarded } = useUser();
+  const { profile, signOut } = useAuth();
+  const { stats } = useCompanySubmissions();
   const [activeTab, setActiveTab] = useState("overview");
 
-  const companyName = user?.companyName || user?.firstName || "Company";
-  const userInitials = user?.firstName && user?.lastName 
-    ? `${user.firstName[0]}${user.lastName[0]}`
+  const companyName = profile?.firstName || "Company";
+  const userInitials = profile?.firstName && profile?.lastName 
+    ? `${profile.firstName[0]}${profile.lastName[0]}`
     : "CO";
 
   const sidebarSections = [
@@ -37,7 +39,7 @@ const CompanyDashboard = () => {
       items: [
         { label: "Overview", icon: <LayoutDashboard className="w-5 h-5" />, id: "overview" },
         { label: "Challenges", icon: <Briefcase className="w-5 h-5" />, id: "challenges" },
-        { label: "Submissions", icon: <Eye className="w-5 h-5" />, id: "submissions", badge: 8 },
+        { label: "Submissions", icon: <Eye className="w-5 h-5" />, id: "submissions", badge: stats.new },
         { label: "Pipeline", icon: <GitBranch className="w-5 h-5" />, id: "pipeline" },
         { label: "Talent Pool", icon: <Users className="w-5 h-5" />, id: "talent" },
       ],
@@ -50,9 +52,8 @@ const CompanyDashboard = () => {
     },
   ];
 
-  const handleLogout = () => {
-    setUser(null);
-    setIsOnboarded(false);
+  const handleLogout = async () => {
+    await signOut();
     navigate("/");
   };
 
@@ -115,7 +116,7 @@ const CompanyDashboard = () => {
                     >
                       {item.icon}
                       <span>{item.label}</span>
-                      {item.badge && (
+                      {item.badge && item.badge > 0 && (
                         <span className="ml-auto w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-medium">
                           {item.badge}
                         </span>
@@ -135,9 +136,9 @@ const CompanyDashboard = () => {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-foreground truncate">
-                {user?.firstName} {user?.lastName}
+                {profile?.firstName} {profile?.lastName}
               </p>
-              <p className="text-xs text-muted-foreground truncate">{user?.companyName || "Company"}</p>
+              <p className="text-xs text-muted-foreground truncate">Company Admin</p>
             </div>
           </div>
           <Button 

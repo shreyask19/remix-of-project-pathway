@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { useUser } from "@/contexts/UserContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { useCompanyProfile } from "@/hooks/useCompanyProfile";
 import { toast } from "sonner";
 import { 
   Building2, 
@@ -20,37 +21,50 @@ import {
 } from "lucide-react";
 
 const CompanyProfile = () => {
-  const { user } = useUser();
+  const { profile: authProfile } = useAuth();
+  const { profile: companyProfile, saveProfile } = useCompanyProfile();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   
   const [profile, setProfile] = useState({
-    companyName: user?.companyName || "TechCorp Inc.",
-    domain: "Technology",
-    website: "https://techcorp.example.com",
-    location: "San Francisco, CA",
+    companyName: companyProfile?.company_name || authProfile?.firstName || "Company",
+    domain: companyProfile?.industry || "Technology",
+    website: companyProfile?.website || "",
+    location: companyProfile?.headquarters || "San Francisco, CA",
     founded: "2015",
-    employees: "500-1000",
-    description: "We are a leading technology company focused on building innovative solutions that transform how businesses operate. Our mission is to empower organizations with cutting-edge tools and platforms.",
+    employees: companyProfile?.company_size || "50-100",
+    description: companyProfile?.description || "We are a leading company focused on building innovative solutions.",
     mission: "To democratize technology and make it accessible to businesses of all sizes.",
     values: ["Innovation", "Integrity", "Collaboration", "Excellence"],
     openPositions: 12,
     projectsPosted: 8,
     studentsHired: 24,
-    contactEmail: user?.email || "hiring@techcorp.com",
-    contactPhone: "+1 (555) 123-4567",
-    focusAreas: ["Software Development", "Data Science", "UX/UI Design", "Cloud Infrastructure"]
+    contactEmail: authProfile?.email || "contact@company.com",
+    contactPhone: authProfile?.phone || "+1 (555) 123-4567",
+    focusAreas: companyProfile?.hiring_roles || ["Software Development", "Data Science", "UX/UI Design"]
   });
 
   const [editedProfile, setEditedProfile] = useState(profile);
 
   const handleSave = async () => {
     setIsSaving(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setProfile(editedProfile);
-    setIsEditing(false);
+    try {
+      await saveProfile.mutateAsync({
+        company_name: editedProfile.companyName,
+        industry: editedProfile.domain,
+        website: editedProfile.website,
+        headquarters: editedProfile.location,
+        company_size: editedProfile.employees,
+        description: editedProfile.description,
+        hiring_roles: editedProfile.focusAreas,
+      });
+      setProfile(editedProfile);
+      setIsEditing(false);
+      toast.success("Company profile updated successfully");
+    } catch (error) {
+      toast.error("Failed to update profile");
+    }
     setIsSaving(false);
-    toast.success("Company profile updated successfully");
   };
 
   const handleCancel = () => {
@@ -244,10 +258,14 @@ const CompanyProfile = () => {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Website</p>
-              <a href={profile.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1">
-                {profile.website.replace('https://', '')}
-                <ExternalLink className="w-3 h-3" />
-              </a>
+              {profile.website ? (
+                <a href={profile.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1">
+                  {profile.website.replace('https://', '')}
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              ) : (
+                <p className="text-muted-foreground">Not set</p>
+              )}
             </div>
           </div>
         </div>

@@ -32,24 +32,52 @@ export interface Application {
   challenge?: Challenge;
 }
 
-export const useChallenges = () => {
+interface UseChallengesOptions {
+  searchQuery?: string;
+  category?: string;
+  difficulty?: string;
+}
+
+export const useChallenges = (options: UseChallengesOptions = {}) => {
   const { user, role } = useAuth();
   const queryClient = useQueryClient();
+  const { searchQuery, category, difficulty } = options;
 
-  // Fetch all active challenges
+  // Fetch all active challenges with server-side filtering
   const { data: challenges, isLoading: challengesLoading } = useQuery({
-    queryKey: ["challenges"],
+    queryKey: ["challenges", searchQuery, category, difficulty],
     queryFn: async () => {
-      const { data: challengesData, error: challengesError } = await supabase
+      let query = supabase
         .from("challenges")
         .select("*")
         .eq("status", "active")
         .order("created_at", { ascending: false });
 
+      // Server-side filtering - only return matching rows
+      if (category && category !== "all") {
+        query = query.eq("category", category);
+      }
+
+      if (difficulty && difficulty !== "all") {
+        query = query.eq("difficulty", difficulty);
+      }
+
+      if (searchQuery && searchQuery.trim()) {
+        // Use ilike for case-insensitive search on title and description
+        query = query.or(`title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`);
+      }
+
+      const { data: challengesData, error: challengesError } = await query;
+
       if (challengesError) throw challengesError;
       
       // Fetch company profiles separately
       const companyIds = [...new Set(challengesData?.map(c => c.company_id) || [])];
+      
+      if (companyIds.length === 0) {
+        return [];
+      }
+
       const { data: companiesData } = await supabase
         .from("company_profiles")
         .select("user_id, company_name, logo_url")

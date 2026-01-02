@@ -265,6 +265,33 @@ export type Database = {
         }
         Relationships: []
       }
+      institutions: {
+        Row: {
+          created_at: string
+          domain: string | null
+          id: string
+          name: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          domain?: string | null
+          id?: string
+          name: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          domain?: string | null
+          id?: string
+          name?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       invitations: {
         Row: {
           company_id: string
@@ -308,6 +335,7 @@ export type Database = {
           email: string
           first_name: string
           id: string
+          institution_id: string | null
           is_onboarded: boolean
           last_name: string
           phone: string | null
@@ -319,6 +347,7 @@ export type Database = {
           email?: string
           first_name?: string
           id: string
+          institution_id?: string | null
           is_onboarded?: boolean
           last_name?: string
           phone?: string | null
@@ -330,12 +359,21 @@ export type Database = {
           email?: string
           first_name?: string
           id?: string
+          institution_id?: string | null
           is_onboarded?: boolean
           last_name?: string
           phone?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: false
+            referencedRelation: "institutions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       project_applications: {
         Row: {
@@ -387,6 +425,7 @@ export type Database = {
           graduation_year: string | null
           hours_per_week: string | null
           id: string
+          institution_id: string | null
           interests: string[] | null
           linkedin_url: string | null
           portfolio_url: string | null
@@ -408,6 +447,7 @@ export type Database = {
           graduation_year?: string | null
           hours_per_week?: string | null
           id?: string
+          institution_id?: string | null
           interests?: string[] | null
           linkedin_url?: string | null
           portfolio_url?: string | null
@@ -429,6 +469,7 @@ export type Database = {
           graduation_year?: string | null
           hours_per_week?: string | null
           id?: string
+          institution_id?: string | null
           interests?: string[] | null
           linkedin_url?: string | null
           portfolio_url?: string | null
@@ -439,7 +480,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "student_profiles_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: false
+            referencedRelation: "institutions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       submissions: {
         Row: {
@@ -517,6 +566,7 @@ export type Database = {
           designation: string | null
           employee_id: string | null
           id: string
+          institution_id: string | null
           institution_name: string | null
           institution_type: string | null
           specializations: string[] | null
@@ -531,6 +581,7 @@ export type Database = {
           designation?: string | null
           employee_id?: string | null
           id?: string
+          institution_id?: string | null
           institution_name?: string | null
           institution_type?: string | null
           specializations?: string[] | null
@@ -545,6 +596,7 @@ export type Database = {
           designation?: string | null
           employee_id?: string | null
           id?: string
+          institution_id?: string | null
           institution_name?: string | null
           institution_type?: string | null
           specializations?: string[] | null
@@ -553,7 +605,15 @@ export type Database = {
           user_id?: string
           years_of_experience?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "teacher_profiles_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: false
+            referencedRelation: "institutions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -578,6 +638,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      approve_grade_and_award_credits: {
+        Args: {
+          p_challenge_id: string
+          p_credits: number
+          p_submission_id: string
+          p_teacher_id: string
+        }
+        Returns: Json
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
