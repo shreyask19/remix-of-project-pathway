@@ -100,9 +100,9 @@ const CompanyDashboard = () => {
       {/* Sidebar */}
       <aside className="w-64 h-screen bg-card border-r border-border flex flex-col">
         <div className="p-5 border-b border-border">
-          <a href="/">
+          <button onClick={() => navigate("/")} className="block">
             <HeuristicLogo size="md" />
-          </a>
+          </button>
           <p className="text-xs text-muted-foreground mt-1 ml-[52px]">Company Portal</p>
         </div>
 
