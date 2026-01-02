@@ -241,6 +241,9 @@ const StudentOnboarding = () => {
           throw new Error(result.error || "Onboarding failed");
         }
         
+        // Mark onboarding as complete in AuthContext
+        await completeOnboarding();
+        
         toast.success(`Welcome, ${formData.firstName}! Let's start building.`);
         navigate("/student");
       } catch (error: any) {
