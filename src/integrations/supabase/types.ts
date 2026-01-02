@@ -133,12 +133,15 @@ export type Database = {
           deadline: string | null
           description: string
           difficulty: string
+          estimated_hours: number | null
           id: string
           instructions: string | null
           max_applicants: number | null
           required_skills: string[] | null
           restrictions: string[] | null
           status: Database["public"]["Enums"]["challenge_status"]
+          stipend_amount: number | null
+          tech_stack: string[] | null
           title: string
           updated_at: string
         }
@@ -151,12 +154,15 @@ export type Database = {
           deadline?: string | null
           description?: string
           difficulty?: string
+          estimated_hours?: number | null
           id?: string
           instructions?: string | null
           max_applicants?: number | null
           required_skills?: string[] | null
           restrictions?: string[] | null
           status?: Database["public"]["Enums"]["challenge_status"]
+          stipend_amount?: number | null
+          tech_stack?: string[] | null
           title: string
           updated_at?: string
         }
@@ -169,19 +175,58 @@ export type Database = {
           deadline?: string | null
           description?: string
           difficulty?: string
+          estimated_hours?: number | null
           id?: string
           instructions?: string | null
           max_applicants?: number | null
           required_skills?: string[] | null
           restrictions?: string[] | null
           status?: Database["public"]["Enums"]["challenge_status"]
+          stipend_amount?: number | null
+          tech_stack?: string[] | null
           title?: string
           updated_at?: string
         }
         Relationships: []
       }
+      company_feedback_to_teacher: {
+        Row: {
+          company_id: string
+          created_at: string
+          feedback_text: string
+          id: string
+          submission_id: string
+          teacher_id: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          feedback_text: string
+          id?: string
+          submission_id: string
+          teacher_id?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          feedback_text?: string
+          id?: string
+          submission_id?: string
+          teacher_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_feedback_to_teacher_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_profiles: {
         Row: {
+          avg_review_time_hours: number | null
           company_name: string
           company_size: string | null
           contact_role: string | null
@@ -191,6 +236,7 @@ export type Database = {
           hiring_roles: string[] | null
           id: string
           industry: string | null
+          logo_high_res_url: string | null
           logo_url: string | null
           required_skills: string[] | null
           updated_at: string
@@ -198,6 +244,7 @@ export type Database = {
           website: string | null
         }
         Insert: {
+          avg_review_time_hours?: number | null
           company_name?: string
           company_size?: string | null
           contact_role?: string | null
@@ -207,6 +254,7 @@ export type Database = {
           hiring_roles?: string[] | null
           id?: string
           industry?: string | null
+          logo_high_res_url?: string | null
           logo_url?: string | null
           required_skills?: string[] | null
           updated_at?: string
@@ -214,6 +262,7 @@ export type Database = {
           website?: string | null
         }
         Update: {
+          avg_review_time_hours?: number | null
           company_name?: string
           company_size?: string | null
           contact_role?: string | null
@@ -223,6 +272,7 @@ export type Database = {
           hiring_roles?: string[] | null
           id?: string
           industry?: string | null
+          logo_high_res_url?: string | null
           logo_url?: string | null
           required_skills?: string[] | null
           updated_at?: string
@@ -558,6 +608,30 @@ export type Database = {
           },
         ]
       }
+      skill_graph_data: {
+        Row: {
+          category: string
+          id: string
+          score: number
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          id?: string
+          score?: number
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          id?: string
+          score?: number
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       student_profiles: {
         Row: {
           batch: string | null
@@ -570,11 +644,16 @@ export type Database = {
           graduation_year: string | null
           hours_per_week: string | null
           id: string
+          industry_readiness_score: number
           institution_id: string | null
           interests: string[] | null
           linkedin_url: string | null
           portfolio_url: string | null
+          preferred_companies: string[] | null
           preferred_project_types: string[] | null
+          pro_badge_earned: boolean
+          public_profile_slug: string | null
+          reliability_score: number
           total_credits: number
           university_name: string | null
           university_program: string | null
@@ -592,11 +671,16 @@ export type Database = {
           graduation_year?: string | null
           hours_per_week?: string | null
           id?: string
+          industry_readiness_score?: number
           institution_id?: string | null
           interests?: string[] | null
           linkedin_url?: string | null
           portfolio_url?: string | null
+          preferred_companies?: string[] | null
           preferred_project_types?: string[] | null
+          pro_badge_earned?: boolean
+          public_profile_slug?: string | null
+          reliability_score?: number
           total_credits?: number
           university_name?: string | null
           university_program?: string | null
@@ -614,11 +698,16 @@ export type Database = {
           graduation_year?: string | null
           hours_per_week?: string | null
           id?: string
+          industry_readiness_score?: number
           institution_id?: string | null
           interests?: string[] | null
           linkedin_url?: string | null
           portfolio_url?: string | null
+          preferred_companies?: string[] | null
           preferred_project_types?: string[] | null
+          pro_badge_earned?: boolean
+          public_profile_slug?: string | null
+          reliability_score?: number
           total_credits?: number
           university_name?: string | null
           university_program?: string | null
@@ -852,6 +941,30 @@ export type Database = {
           min_projects?: number
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      teacher_vouches: {
+        Row: {
+          created_at: string
+          id: string
+          student_id: string
+          teacher_id: string
+          vouch_type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          student_id: string
+          teacher_id: string
+          vouch_type: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          student_id?: string
+          teacher_id?: string
+          vouch_type?: string
         }
         Relationships: []
       }
