@@ -13,6 +13,7 @@ import CompanyOnboarding from "@/pages/CompanyOnboarding";
 import ForStudents from "@/pages/ForStudents";
 import ForEducators from "@/pages/ForEducators";
 import ForCompanies from "@/pages/ForCompanies";
+import PublicPortfolio from "@/pages/PublicPortfolio";
 import NotFound from "@/pages/NotFound";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
@@ -70,6 +71,7 @@ const AnimatedRoutes = () => {
         <Route path="/for-students" element={<PageWrapper><ForStudents /></PageWrapper>} />
         <Route path="/for-educators" element={<PageWrapper><ForEducators /></PageWrapper>} />
         <Route path="/for-companies" element={<PageWrapper><ForCompanies /></PageWrapper>} />
+        <Route path="/portfolio/:slug" element={<PageWrapper><PublicPortfolio /></PageWrapper>} />
         
         {/* Student routes */}
         <Route

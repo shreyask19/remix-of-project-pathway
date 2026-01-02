@@ -23,17 +23,17 @@ import { useStudentSubmissions } from "@/hooks/useSubmissions";
 import { useStudentBadges } from "@/hooks/useReliabilityBadge";
 import ReliabilityBadge from "@/components/shared/ReliabilityBadge";
 import IndustryReadinessScore from "./IndustryReadinessScore";
+import PublicUrlCard from "./PublicUrlCard";
 import { generatePortfolioPDF, downloadPDF, ProjectData, SkillCategory } from "@/lib/pdfGenerator";
 import { Progress } from "@/components/ui/progress";
 
 const Portfolio = () => {
   const { profile: authProfile, user } = useAuth();
-  const { profile: studentProfile, credits, industryReadinessScore, skillGraphData } = useStudentProfile();
+  const { profile: studentProfile, credits, industryReadinessScore } = useStudentProfile();
   const { submissions, isLoading: submissionsLoading } = useStudentSubmissions();
   const { badges } = useStudentBadges(user?.id);
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
-  const [isSharing, setIsSharing] = useState(false);
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -181,33 +181,6 @@ const Portfolio = () => {
     setExportProgress(0);
   };
 
-  const handleSharePortfolio = async () => {
-    setIsSharing(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const shareUrl = `https://heuristic.app/portfolio/${authProfile?.firstName?.toLowerCase() || 'student'}-${Date.now().toString(36)}`;
-    
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `${profile.name}'s Portfolio`,
-          text: 'Check out my verified project portfolio on Heuristic',
-          url: shareUrl,
-        });
-        toast.success("Portfolio shared!");
-      } catch (err) {
-        await navigator.clipboard.writeText(shareUrl);
-        toast.success("Portfolio link copied to clipboard!");
-      }
-    } else {
-      await navigator.clipboard.writeText(shareUrl);
-      toast.success("Portfolio link copied!", {
-        description: shareUrl,
-      });
-    }
-    setIsSharing(false);
-  };
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -242,25 +215,11 @@ const Portfolio = () => {
               )}
             </Button>
           </div>
-          <Button 
-            className="rounded-xl gap-2"
-            onClick={handleSharePortfolio}
-            disabled={isSharing}
-          >
-            {isSharing ? (
-              <>
-                <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
-                Sharing...
-              </>
-            ) : (
-              <>
-                <Share2 className="w-4 h-4" />
-                Share Portfolio
-              </>
-            )}
-          </Button>
         </div>
       </div>
+
+      {/* Public URL Card */}
+      <PublicUrlCard />
 
       {/* Profile Card */}
       <div className="glass-card">
