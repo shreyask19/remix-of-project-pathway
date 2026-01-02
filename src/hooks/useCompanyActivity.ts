@@ -1,8 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 export interface CompanyActivity {
   id: string;
@@ -150,12 +150,12 @@ export const useCompanyActivity = (limit: number = 10) => {
     enabled: !!user,
   });
 
-  // Real-time subscription for new submissions
+  // Real-time subscription for new submissions and pipeline updates
   useEffect(() => {
     if (!user) return;
 
     const channel = supabase
-      .channel("company-activity-realtime")
+      .channel("company-realtime-updates")
       .on(
         "postgres_changes",
         {
@@ -163,10 +163,12 @@ export const useCompanyActivity = (limit: number = 10) => {
           schema: "public",
           table: "submissions",
         },
-        () => {
-          // Refetch activities when a new submission is created
+        (payload) => {
+          // Check if this submission is for one of our challenges
+          toast.info("New project submission received! 📥");
           queryClient.invalidateQueries({ queryKey: ["companyActivity"] });
           queryClient.invalidateQueries({ queryKey: ["companyStats"] });
+          queryClient.invalidateQueries({ queryKey: ["submissions"] });
         }
       )
       .on(
@@ -176,9 +178,16 @@ export const useCompanyActivity = (limit: number = 10) => {
           schema: "public",
           table: "submissions",
         },
-        () => {
+        (payload) => {
+          const newStatus = payload.new.status;
+          if (newStatus === "approved") {
+            toast.success("A submission has been approved by a teacher! ✓");
+          } else if (newStatus === "disputed") {
+            toast.warning("A grade has been disputed. Please review. ⚠️");
+          }
           queryClient.invalidateQueries({ queryKey: ["companyActivity"] });
           queryClient.invalidateQueries({ queryKey: ["companyStats"] });
+          queryClient.invalidateQueries({ queryKey: ["submissions"] });
         }
       )
       .on(
@@ -187,10 +196,30 @@ export const useCompanyActivity = (limit: number = 10) => {
           event: "*",
           schema: "public",
           table: "hiring_pipeline",
+          filter: `company_id=eq.${user.id}`,
         },
         () => {
           queryClient.invalidateQueries({ queryKey: ["companyActivity"] });
           queryClient.invalidateQueries({ queryKey: ["companyStats"] });
+          queryClient.invalidateQueries({ queryKey: ["hiringPipeline"] });
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "invitations",
+          filter: `company_id=eq.${user.id}`,
+        },
+        (payload) => {
+          const status = payload.new.status;
+          if (status === "accepted") {
+            toast.success("A student has accepted your invitation! 🎉");
+          } else if (status === "declined") {
+            toast.info("A student has declined your invitation.");
+          }
+          queryClient.invalidateQueries({ queryKey: ["companyInvitations"] });
         }
       )
       .subscribe();

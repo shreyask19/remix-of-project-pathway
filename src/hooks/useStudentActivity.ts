@@ -123,7 +123,7 @@ export const useStudentActivity = (limit: number = 10) => {
     if (!user) return;
 
     const channel = supabase
-      .channel("student-activity-realtime")
+      .channel("student-realtime-updates")
       .on(
         "postgres_changes",
         {
@@ -144,6 +144,8 @@ export const useStudentActivity = (limit: number = 10) => {
               toast.success(`Your project was graded: ${gradeLabel}! 🎉`);
             } else if (newStatus === "approved") {
               toast.success("Your project was approved! Credits have been awarded! 🏆");
+            } else if (newStatus === "disputed") {
+              toast.info("A grade dispute has been raised. Awaiting review.");
             }
           }
           
@@ -166,6 +168,46 @@ export const useStudentActivity = (limit: number = 10) => {
           toast.success(`You earned ${amount} credits! 💰`);
           queryClient.invalidateQueries({ queryKey: ["studentStats"] });
           queryClient.invalidateQueries({ queryKey: ["studentProfile"] });
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "invitations",
+          filter: `student_id=eq.${user.id}`,
+        },
+        (payload) => {
+          const type = payload.new.type;
+          if (type === "interview") {
+            toast.info("You have a new interview invitation! 📧");
+          } else if (type === "offer") {
+            toast.success("You received a job offer! 🎉");
+          }
+          queryClient.invalidateQueries({ queryKey: ["studentInvitations"] });
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "hiring_pipeline",
+          filter: `student_id=eq.${user.id}`,
+        },
+        (payload) => {
+          if (payload.eventType === "INSERT" || payload.eventType === "UPDATE") {
+            const stage = payload.new.stage;
+            if (stage === "interviewing") {
+              toast.info("A company has moved you to the interview stage! 🎤");
+            } else if (stage === "offer_sent") {
+              toast.success("You have received a job offer! 🎉");
+            } else if (stage === "hired") {
+              toast.success("Congratulations! You've been hired! 🏆");
+            }
+          }
+          queryClient.invalidateQueries({ queryKey: ["studentInvitations"] });
         }
       )
       .subscribe();

@@ -11,6 +11,7 @@ import AlertsSection from "@/components/teacher/AlertsSection";
 import AcademicControl from "@/components/teacher/AcademicControl";
 import TeacherAnalytics from "@/components/teacher/TeacherAnalytics";
 import { useTeacherSubmissions, useExemptionRequests } from "@/hooks/useSubmissions";
+import { useTeacherRealtime } from "@/hooks/useTeacherRealtime";
 import { 
   LayoutDashboard, 
   Users, 
@@ -27,6 +28,9 @@ const TeacherDashboard = () => {
   const { pendingGrades } = useTeacherSubmissions();
   const { requests: exemptionRequests } = useExemptionRequests();
   const [activeTab, setActiveTab] = useState("overview");
+  
+  // Enable realtime updates for teacher dashboard
+  useTeacherRealtime();
 
   const userName = profile?.firstName || "Professor";
   const userInitials = profile?.firstName && profile?.lastName 

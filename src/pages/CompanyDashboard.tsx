@@ -10,6 +10,8 @@ import SubmissionReview from "@/components/company/SubmissionReview";
 import HiringPipeline from "@/components/company/HiringPipeline";
 import TalentPool from "@/components/company/TalentPool";
 import CompanyProfile from "@/components/company/CompanyProfile";
+import { useCompanySubmissions } from "@/hooks/useSubmissions";
+import { useCompanyActivity } from "@/hooks/useCompanyActivity";
 import {
   LayoutDashboard,
   Briefcase,
@@ -21,13 +23,15 @@ import {
   Plus,
   LogOut
 } from "lucide-react";
-import { useCompanySubmissions } from "@/hooks/useSubmissions";
 
 const CompanyDashboard = () => {
   const navigate = useNavigate();
   const { profile, signOut } = useAuth();
   const { stats } = useCompanySubmissions();
   const [activeTab, setActiveTab] = useState("overview");
+  
+  // Enable realtime updates - this hook subscribes to submission/pipeline/invitation changes
+  useCompanyActivity();
 
   const companyName = profile?.firstName || "Company";
   const userInitials = profile?.firstName && profile?.lastName 
