@@ -22,7 +22,8 @@ import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { useStudentSubmissions } from "@/hooks/useSubmissions";
 import { useStudentBadges } from "@/hooks/useReliabilityBadge";
 import ReliabilityBadge from "@/components/shared/ReliabilityBadge";
-import jsPDF from "jspdf";
+import { generatePortfolioPDF, downloadPDF, ProjectData, SkillCategory } from "@/lib/pdfGenerator";
+import { Progress } from "@/components/ui/progress";
 
 const Portfolio = () => {
   const { profile: authProfile, user } = useAuth();
@@ -30,12 +31,13 @@ const Portfolio = () => {
   const { submissions, isLoading: submissionsLoading } = useStudentSubmissions();
   const { badges } = useStudentBadges(user?.id);
   const [isExporting, setIsExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState(0);
   const [isSharing, setIsSharing] = useState(false);
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Derive completed projects from real submissions
-  const completedProjects = useMemo(() => {
+  // Derive completed projects from real submissions (only graded/approved)
+  const completedProjects = useMemo((): ProjectData[] => {
     if (!submissions) return [];
     return submissions
       .filter(s => s.status === "graded" || s.status === "approved")
@@ -43,10 +45,10 @@ const Portfolio = () => {
         id: s.id,
         title: s.challenge?.title || "Untitled Project",
         company: "Company",
+        companyLogoUrl: undefined, // Will be populated when company data is available
         credits: s.challenge?.credits || 0,
         grade: s.grade && s.grade >= 90 ? "Excellent" : s.grade && s.grade >= 70 ? "Satisfied" : "Needs Improvement",
-        skills: [] as string[],
-        icon: getProjectIcon(undefined),
+        skills: [],
         completedAt: s.graded_at ? new Date(s.graded_at).toLocaleDateString("en-US", { month: "short", year: "numeric" }) : "",
         description: s.notes || "",
       }));
@@ -134,123 +136,48 @@ const Portfolio = () => {
 
   const handleExportPDF = async () => {
     setIsExporting(true);
+    setExportProgress(0);
     
     try {
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pageWidth = pdf.internal.pageSize.getWidth();
+      const studentData = {
+        name: profile.name,
+        title: profile.title,
+        university: profile.university,
+        email: profile.email,
+        totalCredits: profile.totalCredits,
+        projectsCompleted: profile.projectsCompleted,
+        skillScore: profile.skillScore,
+        topSkills: profile.topSkills,
+        proEligible: studentProfile?.pro_badge_earned || false,
+        reliabilityVouches: badges?.total || 0,
+        publicProfileUrl: studentProfile?.public_profile_slug 
+          ? `https://heuristic.app/portfolio/${studentProfile.public_profile_slug}`
+          : undefined,
+      };
+
+      const skillCategories: SkillCategory[] = skillsByCategory;
+
+      const pdfBlob = await generatePortfolioPDF(
+        studentData,
+        completedProjects,
+        skillCategories,
+        (progress) => setExportProgress(progress)
+      );
       
-      // Header
-      pdf.setFillColor(30, 64, 175);
-      pdf.rect(0, 0, pageWidth, 50, 'F');
-      
-      // Name and title
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(24);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text(profile.name, 20, 25);
-      
-      pdf.setFontSize(12);
-      pdf.setFont('helvetica', 'normal');
-      pdf.text(profile.title, 20, 35);
-      pdf.text(profile.university, 20, 42);
-      
-      // Stats section
-      pdf.setTextColor(30, 64, 175);
-      pdf.setFontSize(14);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('Summary', 20, 65);
-      
-      pdf.setTextColor(0, 0, 0);
-      pdf.setFontSize(11);
-      pdf.setFont('helvetica', 'normal');
-      
-      const stats = [
-        `Total Credits Earned: ${profile.totalCredits}`,
-        `Projects Completed: ${profile.projectsCompleted}`,
-        `Skill Score: ${profile.skillScore}%`,
-      ];
-      
-      stats.forEach((stat, i) => {
-        pdf.text(stat, 20, 75 + (i * 7));
-      });
-      
-      // Skills section
-      if (profile.topSkills.length > 0) {
-        pdf.setTextColor(30, 64, 175);
-        pdf.setFontSize(14);
-        pdf.setFont('helvetica', 'bold');
-        pdf.text('Top Skills', 20, 105);
-        
-        pdf.setTextColor(0, 0, 0);
-        pdf.setFontSize(10);
-        pdf.setFont('helvetica', 'normal');
-        pdf.text(profile.topSkills.join('  •  '), 20, 115);
-      }
-      
-      // Skills breakdown
-      if (skillsByCategory.length > 0) {
-        pdf.setTextColor(30, 64, 175);
-        pdf.setFontSize(14);
-        pdf.setFont('helvetica', 'bold');
-        pdf.text('Skills Breakdown', 20, 130);
-        
-        pdf.setTextColor(0, 0, 0);
-        pdf.setFontSize(10);
-        pdf.setFont('helvetica', 'normal');
-        
-        skillsByCategory.forEach((cat, i) => {
-          const yPos = 140 + (i * 12);
-          pdf.text(`${cat.category}: ${cat.level}%`, 20, yPos);
-          pdf.text(cat.skills.join(', '), 70, yPos);
-        });
-      }
-      
-      // Projects section
-      if (completedProjects.length > 0) {
-        pdf.setTextColor(30, 64, 175);
-        pdf.setFontSize(14);
-        pdf.setFont('helvetica', 'bold');
-        pdf.text('Completed Projects', 20, 195);
-        
-        pdf.setTextColor(0, 0, 0);
-        pdf.setFontSize(10);
-        
-        completedProjects.forEach((project, i) => {
-          const yPos = 205 + (i * 20);
-          
-          if (yPos > 270) {
-            pdf.addPage();
-          }
-          
-          const adjustedY = yPos > 270 ? 20 + (i - 3) * 20 : yPos;
-          
-          pdf.setFont('helvetica', 'bold');
-          pdf.text(project.title, 20, adjustedY);
-          pdf.setFont('helvetica', 'normal');
-          pdf.text(`${project.company} | ${project.credits} Credits | ${project.grade}`, 20, adjustedY + 5);
-          pdf.text(`Skills: ${project.skills.join(', ')} | ${project.completedAt}`, 20, adjustedY + 10);
-        });
-      }
-      
-      // Footer
-      const lastPageHeight = pdf.internal.pageSize.getHeight();
-      pdf.setFontSize(8);
-      pdf.setTextColor(128, 128, 128);
-      pdf.text('Generated by Heuristic | Verified Portfolio', pageWidth / 2, lastPageHeight - 10, { align: 'center' });
-      pdf.text(new Date().toLocaleDateString(), pageWidth / 2, lastPageHeight - 5, { align: 'center' });
-      
-      pdf.save(`${profile.name.replace(' ', '_')}_Portfolio.pdf`);
+      downloadPDF(pdfBlob, `${profile.name.replace(/\s+/g, '_')}_Portfolio.pdf`);
       
       toast.success("Portfolio PDF exported!", {
-        description: "Check your downloads folder",
+        description: "Professional resume with verification credentials",
       });
     } catch (error) {
+      console.error('PDF export error:', error);
       toast.error("Export failed", {
         description: "Please try again",
       });
     }
     
     setIsExporting(false);
+    setExportProgress(0);
   };
 
   const handleSharePortfolio = async () => {
@@ -289,24 +216,31 @@ const Portfolio = () => {
           <p className="text-muted-foreground">Showcase your work to potential employers</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button 
-            variant="outline" 
-            className="rounded-xl gap-2"
-            onClick={handleExportPDF}
-            disabled={isExporting}
-          >
-            {isExporting ? (
-              <>
-                <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                Exporting...
-              </>
-            ) : (
-              <>
-                <Download className="w-4 h-4" />
-                Export PDF
-              </>
+          <div className="flex items-center gap-2">
+            {isExporting && (
+              <div className="w-24">
+                <Progress value={exportProgress} className="h-2" />
+              </div>
             )}
-          </Button>
+            <Button 
+              variant="outline" 
+              className="rounded-xl gap-2"
+              onClick={handleExportPDF}
+              disabled={isExporting}
+            >
+              {isExporting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                  {exportProgress}%
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4" />
+                  Export PDF
+                </>
+              )}
+            </Button>
+          </div>
           <Button 
             className="rounded-xl gap-2"
             onClick={handleSharePortfolio}
@@ -491,7 +425,7 @@ const Portfolio = () => {
               <div key={project.id} className="glass-card group hover:border-primary/30 transition-all">
                 <div className="flex items-start gap-4">
                   <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                    {project.icon}
+                    <Code className="w-5 h-5" />
                   </div>
                   <div className="flex-1">
                     <div className="flex items-start justify-between">
