@@ -13,7 +13,7 @@ import {
   Loader2,
   RefreshCw
 } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -32,15 +32,19 @@ import {
 } from "@/components/ui/select";
 import { useChallenges, type Challenge } from "@/hooks/useChallenges";
 import { formatDeadline } from "@/lib/transformers";
+import { useDebouncedSearch } from "@/hooks/useDebouncedSearch";
+import { MarketplaceGridSkeleton } from "@/components/ui/loading-skeleton";
 
 type ChallengeWithCompany = Challenge & { company: { company_name: string; logo_url: string } | null };
 
 const ProjectMarketplace = () => {
   const [activeFilter, setActiveFilter] = useState("all");
-  const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("deadline");
   const [selectedProject, setSelectedProject] = useState<ChallengeWithCompany | null>(null);
   const [showApplyModal, setShowApplyModal] = useState(false);
+
+  // Use debounced search for performance
+  const { value: searchValue, setValue: setSearchValue, debouncedValue: searchQuery, isDebouncing, clear: clearSearch } = useDebouncedSearch("", { delay: 300 });
 
   // Use the useChallenges hook with server-side filtering
   const { 
@@ -153,16 +157,20 @@ const ProjectMarketplace = () => {
             <input
               type="text"
               placeholder="Search projects, skills, companies..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              value={searchValue}
+              onChange={(e) => setSearchValue(e.target.value)}
               className="pl-10 pr-4 py-2 bg-secondary rounded-xl text-sm border-0 outline-none focus:ring-2 focus:ring-primary/20 w-72"
             />
-            {searchQuery && (
+            {(searchValue || isDebouncing) && (
               <button 
-                onClick={() => setSearchQuery("")}
+                onClick={clearSearch}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               >
-                <X className="w-4 h-4" />
+                {isDebouncing ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <X className="w-4 h-4" />
+                )}
               </button>
             )}
           </div>
@@ -201,7 +209,7 @@ const ProjectMarketplace = () => {
       {/* Results Count */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          {challengesLoading ? (
+          {challengesLoading || isDebouncing ? (
             "Loading..."
           ) : (
             <>
@@ -212,11 +220,9 @@ const ProjectMarketplace = () => {
         </p>
       </div>
 
-      {/* Loading State */}
+      {/* Loading State with Skeleton */}
       {challengesLoading && (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        </div>
+        <MarketplaceGridSkeleton count={6} />
       )}
 
       {/* Empty State */}
@@ -229,7 +235,7 @@ const ProjectMarketplace = () => {
           <p className="text-muted-foreground mb-4">
             {searchQuery ? "Try adjusting your search or filters" : "Companies haven't posted any challenges yet"}
           </p>
-          <Button variant="outline" onClick={() => { setSearchQuery(""); setActiveFilter("all"); }}>
+          <Button variant="outline" onClick={() => { clearSearch(); setActiveFilter("all"); }}>
             <RefreshCw className="w-4 h-4 mr-2" />
             Clear Filters
           </Button>

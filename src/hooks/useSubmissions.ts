@@ -138,7 +138,7 @@ export const useCompanySubmissions = (statusFilter?: string) => {
     enabled: !!user,
   });
 
-  // Grade a submission
+  // Grade a submission with optimistic update
   const gradeSubmission = useMutation({
     mutationFn: async ({ 
       submissionId, 
@@ -164,7 +164,22 @@ export const useCompanySubmissions = (statusFilter?: string) => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onMutate: async ({ submissionId, grade, feedback }) => {
+      await queryClient.cancelQueries({ queryKey: ["companySubmissions"] });
+      const previousSubmissions = queryClient.getQueryData(["companySubmissions", user?.id, statusFilter]);
+      
+      queryClient.setQueryData(["companySubmissions", user?.id, statusFilter], (old: Submission[] = []) =>
+        old.map(s => s.id === submissionId ? { ...s, status: "graded", grade, company_feedback: feedback } : s)
+      );
+      
+      return { previousSubmissions };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousSubmissions) {
+        queryClient.setQueryData(["companySubmissions", user?.id, statusFilter], context.previousSubmissions);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["companySubmissions"] });
     },
   });
