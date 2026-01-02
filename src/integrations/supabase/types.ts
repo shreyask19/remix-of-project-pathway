@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_logs: {
+        Row: {
+          action_type: string
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          id: string
+          metadata: Json | null
+          user_id: string
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          metadata?: Json | null
+          user_id: string
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          metadata?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       challenges: {
         Row: {
           category: string | null
@@ -25,8 +55,10 @@ export type Database = {
           description: string
           difficulty: string
           id: string
+          instructions: string | null
           max_applicants: number | null
           required_skills: string[] | null
+          restrictions: string[] | null
           status: Database["public"]["Enums"]["challenge_status"]
           title: string
           updated_at: string
@@ -41,8 +73,10 @@ export type Database = {
           description?: string
           difficulty?: string
           id?: string
+          instructions?: string | null
           max_applicants?: number | null
           required_skills?: string[] | null
+          restrictions?: string[] | null
           status?: Database["public"]["Enums"]["challenge_status"]
           title: string
           updated_at?: string
@@ -57,8 +91,10 @@ export type Database = {
           description?: string
           difficulty?: string
           id?: string
+          instructions?: string | null
           max_applicants?: number | null
           required_skills?: string[] | null
+          restrictions?: string[] | null
           status?: Database["public"]["Enums"]["challenge_status"]
           title?: string
           updated_at?: string
@@ -645,6 +681,36 @@ export type Database = {
           },
         ]
       }
+      teacher_settings: {
+        Row: {
+          created_at: string
+          credit_threshold: number
+          ia_deadline: string | null
+          id: string
+          min_projects: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          credit_threshold?: number
+          ia_deadline?: string | null
+          id?: string
+          min_projects?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          credit_threshold?: number
+          ia_deadline?: string | null
+          id?: string
+          min_projects?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -707,6 +773,16 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      log_activity: {
+        Args: {
+          p_action_type: string
+          p_entity_id?: string
+          p_entity_type: string
+          p_metadata?: Json
+          p_user_id: string
+        }
+        Returns: string
       }
     }
     Enums: {
