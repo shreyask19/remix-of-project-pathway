@@ -49,22 +49,29 @@ export const useStudentInvitations = () => {
     queryFn: async () => {
       if (!user) return [];
       
-      const { data, error } = await supabase
+      // Fetch invitations first
+      const { data: invitationsData, error: invError } = await supabase
         .from("invitations")
-        .select(`
-          *,
-          company_profiles!invitations_company_id_fkey (
-            company_name,
-            logo_url,
-            industry,
-            headquarters
-          )
-        `)
+        .select("*")
         .eq("student_id", user.id)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
-      return (data || []).map(transformInvitation);
+      if (invError) throw invError;
+      if (!invitationsData || invitationsData.length === 0) return [];
+      
+      // Fetch company profiles separately
+      const companyIds = [...new Set(invitationsData.map(inv => inv.company_id))];
+      const { data: companiesData } = await supabase
+        .from("company_profiles")
+        .select("user_id, company_name, logo_url, industry, headquarters")
+        .in("user_id", companyIds);
+
+      const companiesMap = new Map(companiesData?.map(c => [c.user_id, c]) || []);
+      
+      return invitationsData.map(inv => ({
+        ...inv,
+        company_profiles: companiesMap.get(inv.company_id) || null,
+      })).map(transformInvitation);
     },
     enabled: !!user,
   });

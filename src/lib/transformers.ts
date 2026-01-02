@@ -315,20 +315,53 @@ export function exemptionRequestFromDb(
 // ============= UTILITY HELPERS =============
 
 /**
- * Calculate deadline display string
+ * Format deadline as a specific calendar date (e.g., "Jan 15, 2026")
+ * For nil/null deadlines, returns "N/A" explicitly
  */
 export function formatDeadline(deadline: string | null): string {
-  if (!deadline) return "No deadline";
+  if (!deadline) return "N/A";
+  
+  const deadlineDate = new Date(deadline);
+  const now = new Date();
+  
+  // Check if date is valid
+  if (isNaN(deadlineDate.getTime())) return "N/A";
+  
+  // Format as calendar date
+  const formatted = deadlineDate.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+  
+  // Add relative indicator for urgency
+  const diffMs = deadlineDate.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+  
+  if (diffDays < 0) return `${formatted} (Expired)`;
+  if (diffDays === 0) return `${formatted} (Today)`;
+  if (diffDays <= 3) return `${formatted} (${diffDays}d left)`;
+  
+  return formatted;
+}
+
+/**
+ * Get short deadline status for badges/chips
+ */
+export function getDeadlineStatus(deadline: string | null): { label: string; variant: "default" | "warning" | "destructive" | "success" } {
+  if (!deadline) return { label: "No deadline", variant: "default" };
   
   const deadlineDate = new Date(deadline);
   const now = new Date();
   const diffMs = deadlineDate.getTime() - now.getTime();
   const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
   
-  if (diffDays < 0) return "Expired";
-  if (diffDays === 0) return "Due today";
-  if (diffDays === 1) return "1 day left";
-  return `${diffDays} days`;
+  if (diffDays < 0) return { label: "Expired", variant: "destructive" };
+  if (diffDays === 0) return { label: "Due today", variant: "warning" };
+  if (diffDays <= 3) return { label: `${diffDays}d left`, variant: "warning" };
+  if (diffDays <= 7) return { label: `${diffDays}d left`, variant: "default" };
+  
+  return { label: formatDeadline(deadline), variant: "success" };
 }
 
 /**

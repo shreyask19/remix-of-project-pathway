@@ -4,6 +4,7 @@ import ProjectMarketplace from "@/components/student/ProjectMarketplace";
 import SubmissionFlow from "@/components/student/SubmissionFlow";
 import HiringSection from "@/components/student/HiringSection";
 import Portfolio from "@/components/student/Portfolio";
+import StudentSettings from "@/components/student/StudentSettings";
 import HeuristicLogo from "@/components/HeuristicLogo";
 import NotificationDropdown from "@/components/NotificationDropdown";
 import { useAuth } from "@/contexts/AuthContext";
@@ -68,6 +69,8 @@ const StudentDashboard = () => {
         return <HiringSection />;
       case "portfolio":
         return <Portfolio />;
+      case "settings":
+        return <StudentSettings />;
       default:
         return (
           <div className="space-y-6">
@@ -83,9 +86,9 @@ const StudentDashboard = () => {
       {/* Sidebar */}
       <aside className="w-64 h-screen bg-card border-r border-border flex flex-col">
         <div className="p-5 border-b border-border">
-          <a href="/">
+          <button onClick={() => navigate("/")} className="block">
             <HeuristicLogo size="md" />
-          </a>
+          </button>
           <p className="text-xs text-muted-foreground mt-1 ml-[52px]">Student Portal</p>
         </div>
 

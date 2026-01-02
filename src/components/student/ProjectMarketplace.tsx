@@ -21,7 +21,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -438,17 +437,18 @@ const ProjectMarketplace = () => {
 
       {/* Apply Modal */}
       <Dialog open={showApplyModal} onOpenChange={setShowApplyModal}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Apply for Project</DialogTitle>
+            <DialogTitle>Project Details & Application</DialogTitle>
             <DialogDescription>
-              Confirm your application for this project
+              Review the full project requirements before applying
             </DialogDescription>
           </DialogHeader>
           
           {selectedProject && (
-            <div className="py-4">
-              <div className="flex items-center gap-3 mb-4">
+            <div className="py-4 space-y-4">
+              {/* Header */}
+              <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-xl bg-foreground text-background flex items-center justify-center font-bold text-lg">
                   {selectedProject.company?.company_name?.[0] || "H"}
                 </div>
@@ -459,7 +459,60 @@ const ProjectMarketplace = () => {
                   </p>
                 </div>
               </div>
+
+              {/* Objective/Description */}
+              <div className="space-y-2">
+                <h5 className="text-sm font-semibold text-foreground">Objective</h5>
+                <p className="text-sm text-muted-foreground">{selectedProject.description}</p>
+              </div>
+
+              {/* Instructions */}
+              {selectedProject.instructions && (
+                <div className="space-y-2">
+                  <h5 className="text-sm font-semibold text-foreground">Instructions</h5>
+                  <div className="text-sm text-muted-foreground whitespace-pre-wrap bg-secondary/50 p-3 rounded-lg">
+                    {selectedProject.instructions}
+                  </div>
+                </div>
+              )}
+
+              {/* Restrictions */}
+              {selectedProject.restrictions && selectedProject.restrictions.length > 0 && (
+                <div className="space-y-2">
+                  <h5 className="text-sm font-semibold text-foreground">Restrictions (Not Allowed)</h5>
+                  <ul className="text-sm text-muted-foreground list-disc list-inside bg-destructive/5 p-3 rounded-lg border border-destructive/20">
+                    {selectedProject.restrictions.map((restriction, idx) => (
+                      <li key={idx}>{restriction}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Tech Stack / Allowed Tools */}
+              {(selectedProject.tech_stack || selectedProject.required_skills) && (
+                <div className="space-y-2">
+                  <h5 className="text-sm font-semibold text-foreground">Allowed Tools & Technologies</h5>
+                  <div className="flex flex-wrap gap-2">
+                    {(selectedProject.tech_stack || selectedProject.required_skills || []).map((tech) => (
+                      <span key={tech} className="status-badge status-badge-muted text-xs">
+                        {tech}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Required Deliverables */}
+              <div className="space-y-2">
+                <h5 className="text-sm font-semibold text-foreground">Required Deliverables</h5>
+                <ul className="text-sm text-muted-foreground list-disc list-inside bg-secondary/50 p-3 rounded-lg">
+                  <li>GitHub repository with complete source code</li>
+                  <li>Video walkthrough demonstrating the solution</li>
+                  <li>README documentation with setup instructions</li>
+                </ul>
+              </div>
               
+              {/* Key Details */}
               <div className="space-y-3 p-4 bg-secondary/50 rounded-xl">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Credits</span>
@@ -483,16 +536,22 @@ const ProjectMarketplace = () => {
                   <span className="text-muted-foreground">Deadline</span>
                   <span className="font-medium">{formatDeadline(selectedProject.deadline)}</span>
                 </div>
+                {selectedProject.estimated_hours && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Estimated Hours</span>
+                    <span className="font-medium">{selectedProject.estimated_hours}h</span>
+                  </div>
+                )}
               </div>
 
-              <p className="text-sm text-muted-foreground mt-4">
+              <p className="text-sm text-muted-foreground">
                 By applying, you commit to completing this project within the deadline. 
                 Your profile will be shared with {selectedProject.company?.company_name || "the company"}.
               </p>
             </div>
           )}
 
-          <DialogFooter className="gap-2">
+          <div className="flex gap-2 justify-end pt-2">
             <Button variant="outline" onClick={() => setShowApplyModal(false)} disabled={applyToChallenge.isPending}>
               Cancel
             </Button>
@@ -509,7 +568,7 @@ const ProjectMarketplace = () => {
                 </>
               )}
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
