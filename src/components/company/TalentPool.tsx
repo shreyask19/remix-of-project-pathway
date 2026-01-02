@@ -24,19 +24,23 @@ import {
   ArrowUpDown,
   Filter,
   Briefcase,
-  Send
+  Send,
+  ShieldCheck
 } from "lucide-react";
 import { useTalentPool, TalentStudent } from "@/hooks/useTalentPool";
 import { useHiringPipeline } from "@/hooks/useHiringPipeline";
 import { useInvitationActions } from "@/hooks/useInvitationActions";
+import { useReliableStudents } from "@/hooks/useReliabilityBadge";
+import ReliabilityBadge from "@/components/shared/ReliabilityBadge";
 
-type SortOption = "credits" | "projects" | "name";
-type AvailabilityFilter = "all" | "available" | "hired";
+type SortOption = "credits" | "projects" | "name" | "reliability";
+type AvailabilityFilter = "all" | "available" | "hired" | "reliable";
 
 const TalentPool = () => {
   const { talents, isLoading } = useTalentPool();
   const { addToPipeline } = useHiringPipeline();
   const { sendInvitation } = useInvitationActions();
+  const { reliableStudentIds, vouchCounts } = useReliableStudents(3);
   
   const [searchQuery, setSearchQuery] = useState("");
   const [activeSkillFilter, setActiveSkillFilter] = useState<string | null>(null);
@@ -83,6 +87,8 @@ const TalentPool = () => {
       result = result.filter(talent => talent.available);
     } else if (availabilityFilter === "hired") {
       result = result.filter(talent => !talent.available);
+    } else if (availabilityFilter === "reliable") {
+      result = result.filter(talent => reliableStudentIds.includes(talent.userId));
     }
     
     // Sorting
@@ -92,6 +98,8 @@ const TalentPool = () => {
           return b.credits - a.credits;
         case "projects":
           return b.projectsCompleted - a.projectsCompleted;
+        case "reliability":
+          return (vouchCounts[b.userId] || 0) - (vouchCounts[a.userId] || 0);
         case "name":
           return `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`);
         default:
@@ -100,7 +108,7 @@ const TalentPool = () => {
     });
     
     return result;
-  }, [talents, searchQuery, activeSkillFilter, availabilityFilter, sortBy]);
+  }, [talents, searchQuery, activeSkillFilter, availabilityFilter, sortBy, reliableStudentIds, vouchCounts]);
 
   const handleContact = async (talent: TalentStudent) => {
     setContactingId(talent.userId);
@@ -248,6 +256,7 @@ const TalentPool = () => {
             className="px-3 py-2 rounded-lg bg-secondary text-foreground text-sm border-0 outline-none focus:ring-2 focus:ring-primary/20"
           >
             <option value="available">Available Only</option>
+            <option value="reliable">Highly Reliable (3+ badges)</option>
             <option value="all">All Candidates</option>
             <option value="hired">Hired</option>
           </select>
@@ -263,6 +272,7 @@ const TalentPool = () => {
           >
             <option value="credits">Sort by Credits</option>
             <option value="projects">Sort by Projects</option>
+            <option value="reliability">Sort by Reliability</option>
             <option value="name">Sort by Name</option>
           </select>
         </div>
@@ -300,7 +310,10 @@ const TalentPool = () => {
                     {getInitials(talent.firstName, talent.lastName)}
                   </div>
                   <div>
-                    <h3 className="font-semibold text-foreground">{talent.firstName} {talent.lastName}</h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-foreground">{talent.firstName} {talent.lastName}</h3>
+                      <ReliabilityBadge studentId={talent.userId} />
+                    </div>
                     <p className="text-sm text-muted-foreground">{talent.university || "University not specified"}</p>
                   </div>
                 </div>
