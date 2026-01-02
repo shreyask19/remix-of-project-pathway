@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { 
   Plus, 
   Edit, 
@@ -12,28 +13,30 @@ import {
   CheckCircle,
   Upload,
   FileText,
-  X
+  X,
+  Loader2
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
+import { useChallenges } from "@/hooks/useChallenges";
+import { useFileUpload } from "@/hooks/useFileUpload";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
-interface Challenge {
-  id: number;
-  title: string;
-  description: string;
-  status: "active" | "draft" | "closed";
-  difficulty: "Easy" | "Medium" | "Hard";
-  credits: number;
-  skills: string[];
-  deadline: string;
-  submissions: number;
-  instructions: string;
-  files: string[];
+interface AttachedFile {
+  id?: string;
+  name: string;
+  path: string;
+  size: number;
 }
 
 const ProjectCreation = () => {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState({
     title: "",
@@ -43,50 +46,32 @@ const ProjectCreation = () => {
     description: "",
     skills: "",
     instructions: "",
-    files: [] as string[]
+    restrictions: "",
+    files: [] as AttachedFile[]
   });
 
-  const [challenges, setChallenges] = useState<Challenge[]>([
-    {
-      id: 1,
-      title: "Backend Optimization Challenge",
-      description: "Optimize a Django API for high-concurrency traffic with caching strategies.",
-      status: "active",
-      difficulty: "Hard",
-      credits: 90,
-      skills: ["Python", "Django", "Redis"],
-      deadline: "5 days left",
-      submissions: 12,
-      instructions: "Implement caching layer and optimize database queries.",
-      files: ["requirements.pdf"],
+  const { createChallenge } = useChallenges();
+  const { isUploading, progress, uploadChallengeFile, deleteFile } = useFileUpload();
+
+  // Fetch company's own challenges
+  const { data: challenges = [], isLoading } = useQuery({
+    queryKey: ["companyChallenges", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from("challenges")
+        .select(`
+          *,
+          challenge_attachments (id, file_name, file_path, file_size)
+        `)
+        .eq("company_id", user.id)
+        .order("created_at", { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
     },
-    {
-      id: 2,
-      title: "React Dashboard Component",
-      description: "Build a reusable data visualization component library with D3.js integration.",
-      status: "active",
-      difficulty: "Medium",
-      credits: 70,
-      skills: ["React", "TypeScript", "D3.js"],
-      deadline: "12 days left",
-      submissions: 18,
-      instructions: "Create at least 5 chart components with documentation.",
-      files: ["design-specs.pdf", "sample-data.json"],
-    },
-    {
-      id: 3,
-      title: "UX Research Study",
-      description: "Conduct user research and create personas for our mobile app redesign.",
-      status: "draft",
-      difficulty: "Easy",
-      credits: 50,
-      skills: ["UX Research", "Figma", "User Testing"],
-      deadline: "Not set",
-      submissions: 0,
-      instructions: "",
-      files: [],
-    },
-  ]);
+    enabled: !!user,
+  });
 
   const resetForm = () => {
     setFormData({
@@ -97,114 +82,208 @@ const ProjectCreation = () => {
       description: "",
       skills: "",
       instructions: "",
+      restrictions: "",
       files: []
     });
     setEditingId(null);
     setShowCreateForm(false);
   };
 
-  const handleFileUpload = () => {
-    const fileName = `file-${Date.now()}.pdf`;
-    setFormData(prev => ({
-      ...prev,
-      files: [...prev.files, fileName]
-    }));
-    toast.success("File uploaded successfully");
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0 || !editingId) return;
+
+    for (const file of Array.from(files)) {
+      const result = await uploadChallengeFile(editingId, file);
+      if (result) {
+        setFormData(prev => ({
+          ...prev,
+          files: [...prev.files, {
+            name: result.fileName,
+            path: result.path,
+            size: result.fileSize,
+          }]
+        }));
+      }
+    }
+
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
-  const removeFile = (index: number) => {
+  const removeFile = async (index: number) => {
+    const file = formData.files[index];
+    if (file.path) {
+      await deleteFile("challenge-attachments", file.path);
+    }
     setFormData(prev => ({
       ...prev,
       files: prev.files.filter((_, i) => i !== index)
     }));
   };
 
-  const handlePublish = () => {
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const handlePublish = async () => {
     if (!formData.title || !formData.description) {
       toast.error("Please fill in title and description");
       return;
     }
 
-    const newChallenge: Challenge = {
-      id: editingId || Date.now(),
-      title: formData.title,
-      description: formData.description,
-      status: "active",
-      difficulty: formData.difficulty,
-      credits: formData.credits,
-      skills: formData.skills.split(",").map(s => s.trim()).filter(Boolean),
-      deadline: formData.deadline ? `${Math.ceil((new Date(formData.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} days left` : "14 days left",
-      submissions: 0,
-      instructions: formData.instructions,
-      files: formData.files,
-    };
+    try {
+      if (editingId) {
+        // Update existing challenge
+        const { error } = await supabase
+          .from("challenges")
+          .update({
+            title: formData.title,
+            description: formData.description,
+            difficulty: formData.difficulty,
+            credits: formData.credits,
+            required_skills: formData.skills.split(",").map(s => s.trim()).filter(Boolean),
+            deadline: formData.deadline ? new Date(formData.deadline).toISOString() : null,
+            instructions: formData.instructions,
+            restrictions: formData.restrictions.split(",").map(s => s.trim()).filter(Boolean),
+            status: "active",
+          })
+          .eq("id", editingId);
 
-    if (editingId) {
-      setChallenges(prev => prev.map(c => c.id === editingId ? newChallenge : c));
-      toast.success("Challenge updated successfully");
-    } else {
-      setChallenges(prev => [newChallenge, ...prev]);
-      toast.success("Challenge published successfully");
+        if (error) throw error;
+        toast.success("Challenge updated successfully");
+      } else {
+        // Create new challenge
+        await createChallenge.mutateAsync({
+          title: formData.title,
+          description: formData.description,
+          difficulty: formData.difficulty,
+          credits: formData.credits,
+          required_skills: formData.skills.split(",").map(s => s.trim()).filter(Boolean),
+          deadline: formData.deadline ? new Date(formData.deadline).toISOString() : null,
+          instructions: formData.instructions,
+          restrictions: formData.restrictions.split(",").map(s => s.trim()).filter(Boolean),
+          status: "active",
+        });
+        toast.success("Challenge published successfully");
+      }
+      
+      queryClient.invalidateQueries({ queryKey: ["companyChallenges"] });
+      resetForm();
+    } catch (error) {
+      toast.error("Failed to save challenge");
     }
-    
-    resetForm();
   };
 
-  const handleSaveDraft = () => {
+  const handleSaveDraft = async () => {
     if (!formData.title) {
       toast.error("Please add a title");
       return;
     }
 
-    const draftChallenge: Challenge = {
-      id: editingId || Date.now(),
-      title: formData.title,
-      description: formData.description || "No description yet",
-      status: "draft",
-      difficulty: formData.difficulty,
-      credits: formData.credits,
-      skills: formData.skills.split(",").map(s => s.trim()).filter(Boolean),
-      deadline: "Not set",
-      submissions: 0,
-      instructions: formData.instructions,
-      files: formData.files,
-    };
+    try {
+      if (editingId) {
+        const { error } = await supabase
+          .from("challenges")
+          .update({
+            title: formData.title,
+            description: formData.description || "No description yet",
+            difficulty: formData.difficulty,
+            credits: formData.credits,
+            required_skills: formData.skills.split(",").map(s => s.trim()).filter(Boolean),
+            instructions: formData.instructions,
+            restrictions: formData.restrictions.split(",").map(s => s.trim()).filter(Boolean),
+            status: "draft",
+          })
+          .eq("id", editingId);
 
-    if (editingId) {
-      setChallenges(prev => prev.map(c => c.id === editingId ? draftChallenge : c));
-    } else {
-      setChallenges(prev => [draftChallenge, ...prev]);
+        if (error) throw error;
+      } else {
+        await createChallenge.mutateAsync({
+          title: formData.title,
+          description: formData.description || "No description yet",
+          difficulty: formData.difficulty,
+          credits: formData.credits,
+          required_skills: formData.skills.split(",").map(s => s.trim()).filter(Boolean),
+          instructions: formData.instructions,
+          restrictions: formData.restrictions.split(",").map(s => s.trim()).filter(Boolean),
+          status: "draft",
+        });
+      }
+      
+      queryClient.invalidateQueries({ queryKey: ["companyChallenges"] });
+      toast.success("Draft saved");
+      resetForm();
+    } catch (error) {
+      toast.error("Failed to save draft");
     }
-    
-    toast.success("Draft saved");
-    resetForm();
   };
 
-  const handleEdit = (challenge: Challenge) => {
+  const handleEdit = (challenge: typeof challenges[0]) => {
+    const attachedFiles: AttachedFile[] = (challenge.challenge_attachments || []).map((a: { id: string; file_name: string; file_path: string; file_size: number }) => ({
+      id: a.id,
+      name: a.file_name,
+      path: a.file_path,
+      size: a.file_size,
+    }));
+
     setFormData({
       title: challenge.title,
-      difficulty: challenge.difficulty,
+      difficulty: challenge.difficulty as "Easy" | "Medium" | "Hard",
       credits: challenge.credits,
-      deadline: "",
+      deadline: challenge.deadline ? challenge.deadline.split("T")[0] : "",
       description: challenge.description,
-      skills: challenge.skills.join(", "),
-      instructions: challenge.instructions,
-      files: challenge.files
+      skills: (challenge.required_skills || []).join(", "),
+      instructions: challenge.instructions || "",
+      restrictions: (challenge.restrictions || []).join(", "),
+      files: attachedFiles
     });
     setEditingId(challenge.id);
     setShowCreateForm(true);
   };
 
-  const handleDelete = (id: number) => {
-    setChallenges(prev => prev.filter(c => c.id !== id));
-    toast.success("Challenge deleted");
+  const handleDelete = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from("challenges")
+        .delete()
+        .eq("id", id);
+      
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ["companyChallenges"] });
+      toast.success("Challenge deleted");
+    } catch (error) {
+      toast.error("Failed to delete challenge");
+    }
   };
 
-  const handleCloseChallenge = (id: number) => {
-    setChallenges(prev => prev.map(c => 
-      c.id === id ? { ...c, status: "closed" as const } : c
-    ));
-    toast.success("Challenge closed");
+  const handleCloseChallenge = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from("challenges")
+        .update({ status: "closed" })
+        .eq("id", id);
+      
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ["companyChallenges"] });
+      toast.success("Challenge closed");
+    } catch (error) {
+      toast.error("Failed to close challenge");
+    }
+  };
+
+  const getDeadlineText = (deadline: string | null): string => {
+    if (!deadline) return "No deadline";
+    const deadlineDate = new Date(deadline);
+    const now = new Date();
+    const diffDays = Math.ceil((deadlineDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffDays < 0) return "Expired";
+    if (diffDays === 0) return "Due today";
+    return `${diffDays} days left`;
   };
 
   const getIcon = (title: string) => {
@@ -350,21 +429,52 @@ const ProjectCreation = () => {
             {/* File Upload */}
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-foreground mb-2">Attachments</label>
-              <div className="border-2 border-dashed border-border rounded-xl p-6 text-center">
-                <Upload className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
-                <p className="text-sm text-muted-foreground mb-3">Upload datasets, specifications, or resources</p>
-                <Button variant="outline" className="rounded-xl" onClick={handleFileUpload}>
-                  <Upload className="w-4 h-4 mr-2" />
-                  Upload Files
-                </Button>
-              </div>
+              {editingId ? (
+                <>
+                  <div 
+                    className="border-2 border-dashed border-border rounded-xl p-6 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    {isUploading ? (
+                      <>
+                        <Loader2 className="w-8 h-8 mx-auto text-primary animate-spin mb-2" />
+                        <p className="text-sm text-muted-foreground mb-2">Uploading... {progress?.percentage || 0}%</p>
+                        <Progress value={progress?.percentage || 0} className="h-2 max-w-xs mx-auto" />
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
+                        <p className="text-sm text-muted-foreground mb-3">Upload datasets, specifications, or resources (max 10MB)</p>
+                        <Button variant="outline" className="rounded-xl" type="button">
+                          <Upload className="w-4 h-4 mr-2" />
+                          Select Files
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".pdf,.json,.txt,.csv,.zip,.png,.jpg,.jpeg"
+                    multiple
+                    onChange={handleFileSelect}
+                    className="hidden"
+                  />
+                </>
+              ) : (
+                <div className="border-2 border-dashed border-border rounded-xl p-6 text-center">
+                  <Upload className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
+                  <p className="text-sm text-muted-foreground">Save as draft first to upload files</p>
+                </div>
+              )}
               
               {formData.files.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-3">
                   {formData.files.map((file, index) => (
                     <div key={index} className="flex items-center gap-2 px-3 py-2 bg-secondary rounded-lg">
                       <FileText className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm">{file}</span>
+                      <span className="text-sm">{file.name}</span>
+                      <span className="text-xs text-muted-foreground">({formatFileSize(file.size)})</span>
                       <button onClick={() => removeFile(index)} className="text-muted-foreground hover:text-destructive">
                         <X className="w-4 h-4" />
                       </button>
@@ -409,7 +519,7 @@ const ProjectCreation = () => {
                   </div>
                   <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{challenge.description}</p>
                   <div className="flex flex-wrap gap-2">
-                    {challenge.skills.map((skill) => (
+                    {(challenge.required_skills || []).map((skill) => (
                       <span key={skill} className="text-xs px-2 py-1 rounded-lg bg-secondary text-muted-foreground">
                         {skill}
                       </span>
@@ -424,13 +534,13 @@ const ProjectCreation = () => {
                   <p className="text-xs text-muted-foreground">Credits</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-xl font-bold text-foreground">{challenge.submissions}</p>
-                  <p className="text-xs text-muted-foreground">Submissions</p>
+                  <p className="text-xl font-bold text-foreground">{challenge.current_applicants}</p>
+                  <p className="text-xs text-muted-foreground">Applicants</p>
                 </div>
                 <div className="text-center min-w-[80px]">
                   <p className="text-sm font-medium text-foreground flex items-center gap-1 justify-center">
                     <Clock className="w-4 h-4 text-muted-foreground" />
-                    {challenge.deadline}
+                    {getDeadlineText(challenge.deadline)}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
