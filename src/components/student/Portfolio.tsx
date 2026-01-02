@@ -38,14 +38,14 @@ const Portfolio = () => {
       .filter(s => s.status === "graded" || s.status === "approved")
       .map(s => ({
         id: s.id,
-        title: s.challengeTitle || "Untitled Project",
-        company: s.companyName || "Company",
-        credits: s.challengeCredits || 0,
+        title: s.challenge?.title || "Untitled Project",
+        company: "Company",
+        credits: s.challenge?.credits || 0,
         grade: s.grade && s.grade >= 90 ? "Excellent" : s.grade && s.grade >= 70 ? "Satisfied" : "Needs Improvement",
-        skills: s.challengeSkills || [],
-        icon: getProjectIcon(s.challengeCategory),
-        completedAt: s.gradedAt ? new Date(s.gradedAt).toLocaleDateString("en-US", { month: "short", year: "numeric" }) : "",
-        description: s.notes || s.challengeDescription?.slice(0, 100) || "",
+        skills: [] as string[],
+        icon: getProjectIcon(undefined),
+        completedAt: s.graded_at ? new Date(s.graded_at).toLocaleDateString("en-US", { month: "short", year: "numeric" }) : "",
+        description: s.notes || "",
       }));
   }, [submissions]);
 
