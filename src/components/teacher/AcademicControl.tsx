@@ -1,20 +1,64 @@
 import { Button } from "@/components/ui/button";
 import { 
-  Settings, 
   Award, 
   Target, 
   Calendar,
-  Shield,
   BookOpen,
   Save,
-  Info
+  Info,
+  Loader2,
+  CheckCircle
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { toast } from "sonner";
+import { useTeacherSettings } from "@/hooks/useTeacherSettings";
+import { useTeacherProfile } from "@/hooks/useTeacherProfile";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const AcademicControl = () => {
+  const { settings, isLoading, saveSettings } = useTeacherSettings();
+  const { profile } = useTeacherProfile();
+  
   const [creditThreshold, setCreditThreshold] = useState(300);
   const [minProjects, setMinProjects] = useState(5);
-  const [iaDeadline, setIADeadline] = useState("2025-01-15");
+  const [iaDeadline, setIADeadline] = useState("");
+  const [hasChanges, setHasChanges] = useState(false);
+
+  // Sync local state with fetched settings
+  useEffect(() => {
+    if (settings) {
+      setCreditThreshold(settings.credit_threshold || 300);
+      setMinProjects(settings.min_projects || 5);
+      setIADeadline(settings.ia_deadline ? settings.ia_deadline.split("T")[0] : "");
+    }
+  }, [settings]);
+
+  // Track changes
+  useEffect(() => {
+    const originalThreshold = settings?.credit_threshold || 300;
+    const originalMinProjects = settings?.min_projects || 5;
+    const originalDeadline = settings?.ia_deadline ? settings.ia_deadline.split("T")[0] : "";
+    
+    setHasChanges(
+      creditThreshold !== originalThreshold ||
+      minProjects !== originalMinProjects ||
+      iaDeadline !== originalDeadline
+    );
+  }, [creditThreshold, minProjects, iaDeadline, settings]);
+
+  const handleSave = async () => {
+    try {
+      await saveSettings.mutateAsync({
+        credit_threshold: creditThreshold,
+        min_projects: minProjects,
+        ia_deadline: iaDeadline || null,
+      });
+      toast.success("Settings saved successfully");
+      setHasChanges(false);
+    } catch (error) {
+      toast.error("Failed to save settings");
+    }
+  };
 
   const gradeWeights = [
     { grade: "Excellent", weight: 100, color: "bg-success" },
@@ -23,19 +67,45 @@ const AcademicControl = () => {
     { grade: "Dissatisfied", weight: 40, color: "bg-destructive" },
   ];
 
-  const subjects = [
-    { name: "Data Structures & Algorithms", code: "CS301", credits: 4, enrolled: 45 },
-    { name: "Web Development", code: "CS302", credits: 3, enrolled: 52 },
-    { name: "Database Management", code: "CS303", credits: 3, enrolled: 48 },
-    { name: "Machine Learning", code: "CS401", credits: 4, enrolled: 38 },
-  ];
+  // Get subjects from teacher profile
+  const subjects = profile?.subjects_taught?.map((subject, idx) => ({
+    name: subject,
+    code: `SUB${idx + 1}`,
+    credits: 3,
+    enrolled: "—",
+  })) || [];
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <Skeleton className="h-7 w-48 mb-2" />
+          <Skeleton className="h-4 w-72" />
+        </div>
+        <div className="grid lg:grid-cols-2 gap-6">
+          {Array.from({ length: 4 }).map((_, idx) => (
+            <div key={idx} className="dashboard-card">
+              <Skeleton className="h-40 w-full" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h2 className="text-xl font-bold text-foreground">Academic Control</h2>
-        <p className="text-muted-foreground">Configure assessment rules and credit thresholds</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-foreground">Academic Control</h2>
+          <p className="text-muted-foreground">Configure assessment rules and credit thresholds</p>
+        </div>
+        {hasChanges && (
+          <span className="text-xs text-warning bg-warning/10 px-2 py-1 rounded-full">
+            Unsaved changes
+          </span>
+        )}
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">
@@ -160,8 +230,9 @@ const AcademicControl = () => {
           </div>
 
           <div className="mt-4 p-3 rounded-2xl bg-success/10 border border-success/20">
-            <p className="text-xs text-success">
-              ✓ Compliance ready for university assessment guidelines
+            <p className="text-xs text-success flex items-center gap-1">
+              <CheckCircle className="w-3 h-3" />
+              Compliance ready for university assessment guidelines
             </p>
           </div>
         </div>
@@ -178,28 +249,40 @@ const AcademicControl = () => {
             </div>
           </div>
 
-          <div className="space-y-3">
-            {subjects.map((subject) => (
-              <div key={subject.code} className="flex items-center justify-between p-3 rounded-2xl bg-muted/50">
-                <div>
-                  <p className="text-sm font-medium text-foreground">{subject.name}</p>
-                  <p className="text-xs text-muted-foreground">{subject.code} • {subject.credits} credits</p>
+          {subjects.length === 0 ? (
+            <div className="text-center py-6 text-muted-foreground">
+              <BookOpen className="w-8 h-8 mx-auto mb-2 opacity-50" />
+              <p className="text-sm">No subjects configured</p>
+              <p className="text-xs mt-1">Add subjects in your profile settings</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {subjects.map((subject, idx) => (
+                <div key={idx} className="flex items-center justify-between p-3 rounded-2xl bg-muted/50">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{subject.name}</p>
+                    <p className="text-xs text-muted-foreground">{subject.code} • {subject.credits} credits</p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm font-bold text-foreground">{subject.enrolled}</p>
-                  <p className="text-xs text-muted-foreground">students</p>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
       {/* Save Button */}
       <div className="flex justify-end">
-        <Button className="rounded-2xl gap-2">
-          <Save className="w-4 h-4" />
-          Save Changes
+        <Button 
+          className="rounded-2xl gap-2" 
+          onClick={handleSave}
+          disabled={!hasChanges || saveSettings.isPending}
+        >
+          {saveSettings.isPending ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Save className="w-4 h-4" />
+          )}
+          {saveSettings.isPending ? "Saving..." : "Save Changes"}
         </Button>
       </div>
     </div>

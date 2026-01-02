@@ -5,15 +5,18 @@ import {
   Eye, 
   Star,
   MessageSquare,
-  Clock,
   Award,
   AlertTriangle,
-  Send,
   Flag,
   CheckSquare,
   Square,
   Minus,
-  Loader2
+  Loader2,
+  ExternalLink,
+  Github,
+  Video,
+  FileText,
+  Send
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
@@ -53,7 +56,7 @@ const AssessmentApproval = () => {
   // Transform pending grades
   const pendingGrades = useMemo(() => {
     if (!rawPendingGrades) return [];
-    return rawPendingGrades.map(sub => ({
+    return rawPendingGrades.map((sub: any) => ({
       id: sub.id,
       student: sub.studentProfile 
         ? `${sub.studentProfile.first_name} ${sub.studentProfile.last_name}`
@@ -68,6 +71,10 @@ const AssessmentApproval = () => {
         : "Recently",
       status: sub.status as "pending" | "approved" | "disputed",
       challengeId: sub.challenge?.id || "",
+      // Artifacts for viewing
+      githubUrl: sub.files_url || "",
+      videoUrl: sub.video_url || "",
+      artifactFiles: sub.artifactFiles || [],
     }));
   }, [rawPendingGrades]);
 
@@ -431,30 +438,75 @@ const AssessmentApproval = () => {
                   )}
 
                   {/* Actions */}
-                  {item.status !== "disputed" && (
-                    <div className="flex items-center gap-3 ml-9">
-                      <Button 
-                        className="rounded-xl gap-2 bg-success hover:bg-success/90"
-                        onClick={() => handleApproveGrade(item)}
-                        disabled={approveGrade.isPending}
-                      >
-                        {approveGrade.isPending ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <CheckCircle className="w-4 h-4" />
+                  <div className="flex items-center gap-3 ml-9 flex-wrap">
+                    {/* View Artifacts Button */}
+                    {(item.githubUrl || item.videoUrl || item.artifactFiles?.length > 0) && (
+                      <div className="flex items-center gap-2">
+                        {item.githubUrl && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="rounded-xl gap-2"
+                            onClick={() => window.open(item.githubUrl, "_blank")}
+                          >
+                            <Github className="w-4 h-4" />
+                            View Code
+                          </Button>
                         )}
-                        Approve & Award Credits
-                      </Button>
-                      <Button 
-                        variant="outline"
-                        className="rounded-xl gap-2 text-warning hover:text-warning"
-                        onClick={() => setDisputeOpen(item.id)}
-                      >
-                        <Flag className="w-4 h-4" />
-                        Dispute Grade
-                      </Button>
-                    </div>
-                  )}
+                        {item.videoUrl && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="rounded-xl gap-2"
+                            onClick={() => window.open(item.videoUrl, "_blank")}
+                          >
+                            <Video className="w-4 h-4" />
+                            Watch Video
+                          </Button>
+                        )}
+                        {item.artifactFiles?.length > 0 && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="rounded-xl gap-2"
+                            onClick={() => {
+                              item.artifactFiles.forEach((file: any) => {
+                                window.open(file.file_path, "_blank");
+                              });
+                            }}
+                          >
+                            <FileText className="w-4 h-4" />
+                            Files ({item.artifactFiles.length})
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                    
+                    {item.status !== "disputed" && (
+                      <>
+                        <Button 
+                          className="rounded-xl gap-2 bg-success hover:bg-success/90"
+                          onClick={() => handleApproveGrade(item)}
+                          disabled={approveGrade.isPending}
+                        >
+                          {approveGrade.isPending ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <CheckCircle className="w-4 h-4" />
+                          )}
+                          Approve & Award Credits
+                        </Button>
+                        <Button 
+                          variant="outline"
+                          className="rounded-xl gap-2 text-warning hover:text-warning"
+                          onClick={() => setDisputeOpen(item.id)}
+                        >
+                          <Flag className="w-4 h-4" />
+                          Dispute Grade
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             ))
