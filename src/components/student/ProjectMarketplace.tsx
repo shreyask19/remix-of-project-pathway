@@ -11,9 +11,11 @@ import {
   X,
   SortAsc,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  DollarSign
 } from "lucide-react";
-import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -30,24 +32,62 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useChallenges, type Challenge } from "@/hooks/useChallenges";
+import { useChallenges, useFilterOptions, type Challenge } from "@/hooks/useChallenges";
 import { formatDeadline } from "@/lib/transformers";
 import { useDebouncedSearch } from "@/hooks/useDebouncedSearch";
 import { MarketplaceGridSkeleton } from "@/components/ui/loading-skeleton";
 import HeartbeatIndicator from "@/components/shared/HeartbeatIndicator";
+import FilterPanel, { type FilterState } from "@/components/shared/FilterPanel";
 
 type ChallengeWithCompany = Challenge & { company: { company_name: string; logo_url: string; avg_review_time_hours?: number | null } | null };
 
 const ProjectMarketplace = () => {
-  const [activeFilter, setActiveFilter] = useState("all");
-  const [sortBy, setSortBy] = useState("deadline");
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  // Initialize state from URL params
+  const [activeFilter, setActiveFilter] = useState(searchParams.get("category") || "all");
+  const [sortBy, setSortBy] = useState(searchParams.get("sort") || "deadline");
   const [selectedProject, setSelectedProject] = useState<ChallengeWithCompany | null>(null);
   const [showApplyModal, setShowApplyModal] = useState(false);
 
-  // Use debounced search for performance
-  const { value: searchValue, setValue: setSearchValue, debouncedValue: searchQuery, isDebouncing, clear: clearSearch } = useDebouncedSearch("", { delay: 300 });
+  // Advanced filters state
+  const [advancedFilters, setAdvancedFilters] = useState<FilterState>(() => ({
+    techStack: searchParams.get("tech")?.split(",").filter(Boolean) || [],
+    minCredits: parseInt(searchParams.get("minCredits") || "0") || 0,
+    maxCredits: parseInt(searchParams.get("maxCredits") || "500") || 500,
+    hasStipend: searchParams.get("stipend") === "true",
+    company: searchParams.get("company") || "",
+  }));
 
-  // Use the useChallenges hook with server-side filtering
+  // Fetch filter options (cached separately)
+  const { techStacks, companies } = useFilterOptions();
+
+  // Use debounced search for performance
+  const { 
+    value: searchValue, 
+    setValue: setSearchValue, 
+    debouncedValue: searchQuery, 
+    isDebouncing, 
+    clear: clearSearch 
+  } = useDebouncedSearch(searchParams.get("q") || "", { delay: 300 });
+
+  // Sync URL params when filters change
+  useEffect(() => {
+    const params = new URLSearchParams();
+    
+    if (searchQuery) params.set("q", searchQuery);
+    if (activeFilter !== "all") params.set("category", activeFilter);
+    if (sortBy !== "deadline") params.set("sort", sortBy);
+    if (advancedFilters.techStack.length > 0) params.set("tech", advancedFilters.techStack.join(","));
+    if (advancedFilters.minCredits > 0) params.set("minCredits", advancedFilters.minCredits.toString());
+    if (advancedFilters.maxCredits < 500) params.set("maxCredits", advancedFilters.maxCredits.toString());
+    if (advancedFilters.hasStipend) params.set("stipend", "true");
+    if (advancedFilters.company) params.set("company", advancedFilters.company);
+    
+    setSearchParams(params, { replace: true });
+  }, [searchQuery, activeFilter, sortBy, advancedFilters, setSearchParams]);
+
+  // Use the useChallenges hook with all filters
   const { 
     challenges, 
     challengesLoading, 
@@ -56,6 +96,11 @@ const ProjectMarketplace = () => {
   } = useChallenges({
     searchQuery: searchQuery.trim() || undefined,
     category: activeFilter !== "all" ? activeFilter : undefined,
+    techStack: advancedFilters.techStack.length > 0 ? advancedFilters.techStack : undefined,
+    minCredits: advancedFilters.minCredits > 0 ? advancedFilters.minCredits : undefined,
+    maxCredits: advancedFilters.maxCredits < 500 ? advancedFilters.maxCredits : undefined,
+    hasStipend: advancedFilters.hasStipend || undefined,
+    companyId: advancedFilters.company || undefined,
   });
 
   // Get applied challenge IDs
@@ -83,6 +128,8 @@ const ProjectMarketplace = () => {
           return b.credits - a.credits;
         case "credits-low":
           return a.credits - b.credits;
+        case "stipend":
+          return (b.stipend_amount || 0) - (a.stipend_amount || 0);
         case "difficulty": {
           const diffOrder: Record<string, number> = { Easy: 1, Medium: 2, Hard: 3 };
           return (diffOrder[a.difficulty] || 2) - (diffOrder[b.difficulty] || 2);
@@ -144,6 +191,26 @@ const ProjectMarketplace = () => {
     setShowApplyModal(true);
   };
 
+  const clearAllFilters = useCallback(() => {
+    clearSearch();
+    setActiveFilter("all");
+    setAdvancedFilters({
+      techStack: [],
+      minCredits: 0,
+      maxCredits: 500,
+      hasStipend: false,
+      company: "",
+    });
+  }, [clearSearch]);
+
+  const hasAnyFilters = searchQuery || 
+    activeFilter !== "all" || 
+    advancedFilters.techStack.length > 0 || 
+    advancedFilters.minCredits > 0 || 
+    advancedFilters.maxCredits < 500 || 
+    advancedFilters.hasStipend || 
+    advancedFilters.company;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -184,13 +251,14 @@ const ProjectMarketplace = () => {
               <SelectItem value="deadline">Deadline</SelectItem>
               <SelectItem value="credits-high">Credits (High)</SelectItem>
               <SelectItem value="credits-low">Credits (Low)</SelectItem>
+              <SelectItem value="stipend">Stipend</SelectItem>
               <SelectItem value="difficulty">Difficulty</SelectItem>
             </SelectContent>
           </Select>
         </div>
       </div>
 
-      {/* Filter Tabs */}
+      {/* Category Filter Tabs */}
       <div className="flex gap-2 overflow-x-auto pb-2">
         {filters.map((filter) => (
           <button
@@ -207,18 +275,41 @@ const ProjectMarketplace = () => {
         ))}
       </div>
 
+      {/* Advanced Filters Panel */}
+      <FilterPanel
+        filters={advancedFilters}
+        onFiltersChange={setAdvancedFilters}
+        availableTechStacks={techStacks}
+        availableCompanies={companies}
+        isLoading={challengesLoading}
+      />
+
       {/* Results Count */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
           {challengesLoading || isDebouncing ? (
-            "Loading..."
+            <span className="flex items-center gap-2">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              Loading...
+            </span>
           ) : (
             <>
-              Showing {sortedChallenges.length} project{sortedChallenges.length !== 1 ? "s" : ""}
-              {searchQuery && ` for "${searchQuery}"`}
+              Showing <span className="font-semibold text-foreground">{sortedChallenges.length}</span> project{sortedChallenges.length !== 1 ? "s" : ""}
+              {searchQuery && <span className="text-primary"> for "{searchQuery}"</span>}
             </>
           )}
         </p>
+        {hasAnyFilters && (
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={clearAllFilters}
+            className="text-muted-foreground hover:text-foreground gap-1"
+          >
+            <RefreshCw className="w-3 h-3" />
+            Reset All
+          </Button>
+        )}
       </div>
 
       {/* Loading State with Skeleton */}
@@ -234,12 +325,14 @@ const ProjectMarketplace = () => {
           </div>
           <h3 className="text-lg font-semibold text-foreground mb-2">No projects found</h3>
           <p className="text-muted-foreground mb-4">
-            {searchQuery ? "Try adjusting your search or filters" : "Companies haven't posted any challenges yet"}
+            {hasAnyFilters ? "Try adjusting your search or filters" : "Companies haven't posted any challenges yet"}
           </p>
-          <Button variant="outline" onClick={() => { clearSearch(); setActiveFilter("all"); }}>
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Clear Filters
-          </Button>
+          {hasAnyFilters && (
+            <Button variant="outline" onClick={clearAllFilters}>
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Clear Filters
+            </Button>
+          )}
         </div>
       )}
 
@@ -292,14 +385,14 @@ const ProjectMarketplace = () => {
                 <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{project.description}</p>
 
                 <div className="flex flex-wrap gap-2 mb-4">
-                  {(project.required_skills || []).slice(0, 3).map((skill) => (
+                  {(project.tech_stack || project.required_skills || []).slice(0, 3).map((skill) => (
                     <span key={skill} className="status-badge status-badge-muted text-xs">
                       {skill}
                     </span>
                   ))}
-                  {(project.required_skills || []).length > 3 && (
+                  {((project.tech_stack || project.required_skills || []).length > 3) && (
                     <span className="status-badge status-badge-muted text-xs">
-                      +{(project.required_skills || []).length - 3}
+                      +{(project.tech_stack || project.required_skills || []).length - 3}
                     </span>
                   )}
                 </div>
@@ -307,6 +400,12 @@ const ProjectMarketplace = () => {
                 <div className="flex items-center justify-between pt-4 border-t border-border">
                   <div className="flex items-center gap-4">
                     <span className="text-sm font-medium text-primary">{project.credits} Credits</span>
+                    {project.stipend_amount && project.stipend_amount > 0 && (
+                      <span className="text-xs text-success flex items-center gap-1">
+                        <DollarSign className="w-3 h-3" />
+                        ${project.stipend_amount}
+                      </span>
+                    )}
                     <span className="text-xs text-muted-foreground flex items-center gap-1">
                       <Clock className="w-3 h-3" />
                       {formatDeadline(project.deadline)}
@@ -366,6 +465,12 @@ const ProjectMarketplace = () => {
                   <span className="text-muted-foreground">Credits</span>
                   <span className="font-medium text-primary">{selectedProject.credits}</span>
                 </div>
+                {selectedProject.stipend_amount && selectedProject.stipend_amount > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Stipend</span>
+                    <span className="font-medium text-success">${selectedProject.stipend_amount}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Difficulty</span>
                   <span className={`font-medium ${

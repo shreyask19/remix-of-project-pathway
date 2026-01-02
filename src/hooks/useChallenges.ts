@@ -38,20 +38,34 @@ export interface Application {
   challenge?: Challenge;
 }
 
-interface UseChallengesOptions {
+export interface ChallengeFilters {
   searchQuery?: string;
   category?: string;
   difficulty?: string;
+  techStack?: string[];
+  minCredits?: number;
+  maxCredits?: number;
+  hasStipend?: boolean;
+  companyId?: string;
 }
 
-export const useChallenges = (options: UseChallengesOptions = {}) => {
+export const useChallenges = (options: ChallengeFilters = {}) => {
   const { user, role } = useAuth();
   const queryClient = useQueryClient();
-  const { searchQuery, category, difficulty } = options;
+  const { 
+    searchQuery, 
+    category, 
+    difficulty, 
+    techStack, 
+    minCredits, 
+    maxCredits, 
+    hasStipend,
+    companyId 
+  } = options;
 
   // Fetch all active challenges with server-side filtering
   const { data: challenges, isLoading: challengesLoading } = useQuery({
-    queryKey: ["challenges", searchQuery, category, difficulty],
+    queryKey: ["challenges", searchQuery, category, difficulty, techStack, minCredits, maxCredits, hasStipend, companyId],
     queryFn: async () => {
       let query = supabase
         .from("challenges")
@@ -59,18 +73,43 @@ export const useChallenges = (options: UseChallengesOptions = {}) => {
         .eq("status", "active")
         .order("created_at", { ascending: false });
 
-      // Server-side filtering - only return matching rows
+      // Category filter
       if (category && category !== "all") {
         query = query.eq("category", category);
       }
 
+      // Difficulty filter
       if (difficulty && difficulty !== "all") {
         query = query.eq("difficulty", difficulty);
       }
 
+      // Search filter
       if (searchQuery && searchQuery.trim()) {
-        // Use ilike for case-insensitive search on title and description
         query = query.or(`title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`);
+      }
+
+      // Credits range filter
+      if (minCredits !== undefined && minCredits > 0) {
+        query = query.gte("credits", minCredits);
+      }
+      if (maxCredits !== undefined && maxCredits < 500) {
+        query = query.lte("credits", maxCredits);
+      }
+
+      // Stipend filter
+      if (hasStipend) {
+        query = query.not("stipend_amount", "is", null).gt("stipend_amount", 0);
+      }
+
+      // Company filter
+      if (companyId) {
+        query = query.eq("company_id", companyId);
+      }
+
+      // Tech stack filter using array containment
+      // Note: PostgreSQL @> operator checks if array contains all specified elements
+      if (techStack && techStack.length > 0) {
+        query = query.contains("tech_stack", techStack);
       }
 
       const { data: challengesData, error: challengesError } = await query;
@@ -97,6 +136,7 @@ export const useChallenges = (options: UseChallengesOptions = {}) => {
       })) as (Challenge & { company: { company_name: string; logo_url: string; avg_review_time_hours?: number | null } | null })[];
     },
     enabled: !!user,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   // Fetch student's applications
@@ -138,13 +178,11 @@ export const useChallenges = (options: UseChallengesOptions = {}) => {
       if (error) throw error;
       return data;
     },
-    // Optimistic update for instant feedback
     onMutate: async ({ challengeId, coverLetter }) => {
       await queryClient.cancelQueries({ queryKey: ["applications", user?.id] });
       
       const previousApplications = queryClient.getQueryData(["applications", user?.id]);
       
-      // Optimistically add the application
       queryClient.setQueryData(["applications", user?.id], (old: Application[] = []) => [
         {
           id: `temp-${Date.now()}`,
@@ -160,7 +198,6 @@ export const useChallenges = (options: UseChallengesOptions = {}) => {
       return { previousApplications };
     },
     onError: (err, variables, context) => {
-      // Rollback on error
       if (context?.previousApplications) {
         queryClient.setQueryData(["applications", user?.id], context.previousApplications);
       }
@@ -210,5 +247,67 @@ export const useChallenges = (options: UseChallengesOptions = {}) => {
     applicationsLoading,
     applyToChallenge,
     createChallenge,
+  };
+};
+
+// Hook to fetch available filter options (tech stacks, companies) - cached separately
+export const useFilterOptions = () => {
+  const { user } = useAuth();
+
+  const { data: techStacks } = useQuery({
+    queryKey: ["filterOptions", "techStacks"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("challenges")
+        .select("tech_stack")
+        .eq("status", "active");
+
+      if (error) throw error;
+
+      // Flatten and dedupe tech stacks
+      const allTechStacks = data
+        ?.flatMap((c) => c.tech_stack || [])
+        .filter((tech): tech is string => !!tech);
+      
+      return [...new Set(allTechStacks)].sort();
+    },
+    enabled: !!user,
+    staleTime: 10 * 60 * 1000, // 10 minutes
+  });
+
+  const { data: companies } = useQuery({
+    queryKey: ["filterOptions", "companies"],
+    queryFn: async () => {
+      // Get company IDs that have active challenges
+      const { data: challengeData, error: challengeError } = await supabase
+        .from("challenges")
+        .select("company_id")
+        .eq("status", "active");
+
+      if (challengeError) throw challengeError;
+
+      const companyIds = [...new Set(challengeData?.map((c) => c.company_id) || [])];
+      
+      if (companyIds.length === 0) return [];
+
+      const { data, error } = await supabase
+        .from("company_profiles")
+        .select("user_id, company_name")
+        .in("user_id", companyIds);
+
+      if (error) throw error;
+
+      return (data || []).map((c) => ({
+        id: c.user_id,
+        name: c.company_name,
+      }));
+    },
+    enabled: !!user,
+    staleTime: 10 * 60 * 1000, // 10 minutes
+  });
+
+  return {
+    techStacks: techStacks || [],
+    companies: companies || [],
   };
 };
