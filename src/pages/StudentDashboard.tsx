@@ -7,6 +7,7 @@ import Portfolio from "@/components/student/Portfolio";
 import HeuristicLogo from "@/components/HeuristicLogo";
 import NotificationDropdown from "@/components/NotificationDropdown";
 import { useAuth } from "@/contexts/AuthContext";
+import { useStudentActivity } from "@/hooks/useStudentActivity";
 import { 
   LayoutDashboard, 
   Briefcase, 
@@ -25,6 +26,9 @@ const StudentDashboard = () => {
   const navigate = useNavigate();
   const { profile, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
+  
+  // Enable realtime updates - this hook subscribes to submission/grade/credit changes
+  useStudentActivity();
 
   const userName = profile?.firstName || "Student";
   const userInitials = profile?.firstName && profile?.lastName 

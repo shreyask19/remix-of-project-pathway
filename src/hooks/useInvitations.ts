@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { useEffect } from "react";
 
 export interface Invitation {
   id: string;
@@ -67,6 +68,37 @@ export const useStudentInvitations = () => {
     },
     enabled: !!user,
   });
+
+  // Realtime subscription for new invitations
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel("student-invitations-realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "invitations",
+          filter: `student_id=eq.${user.id}`,
+        },
+        (payload) => {
+          const type = payload.new.type;
+          if (type === "interview") {
+            toast.info("You have a new interview invitation! 📧");
+          } else if (type === "offer") {
+            toast.success("You received a job offer! 🎉");
+          }
+          queryClient.invalidateQueries({ queryKey: ["studentInvitations"] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, queryClient]);
 
   const respondToInvitation = useMutation({
     mutationFn: async ({ invitationId, accept }: { invitationId: string; accept: boolean }) => {
@@ -134,6 +166,37 @@ export const useCompanyInvitations = () => {
     },
     enabled: !!user,
   });
+
+  // Realtime subscription for invitation responses
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel("company-invitations-realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "invitations",
+          filter: `company_id=eq.${user.id}`,
+        },
+        (payload) => {
+          const status = payload.new.status;
+          if (status === "accepted") {
+            toast.success("A student has accepted your invitation! 🎉");
+          } else if (status === "declined") {
+            toast.info("A student has declined your invitation.");
+          }
+          queryClient.invalidateQueries({ queryKey: ["companyInvitations"] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, queryClient]);
 
   const sendInvitation = useMutation({
     mutationFn: async ({ 
