@@ -95,7 +95,7 @@ export const useHiringPipeline = () => {
     },
   });
 
-  const addToePipeline = useMutation({
+  const addToPipeline = useMutation({
     mutationFn: async ({ studentId, notes }: { studentId: string; notes?: string }) => {
       if (!user) throw new Error("Not authenticated");
       
@@ -141,6 +141,6 @@ export const useHiringPipeline = () => {
     stageCounts,
     isLoading,
     updateStage,
-    addToePipeline,
+    addToPipeline,
   };
 };

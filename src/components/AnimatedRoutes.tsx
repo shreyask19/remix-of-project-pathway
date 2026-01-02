@@ -1,3 +1,4 @@
+import React from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import Index from "@/pages/Index";
@@ -38,17 +39,23 @@ const pageVariants = {
   },
 };
 
-const PageWrapper = ({ children }: { children: React.ReactNode }) => (
-  <motion.div
-    variants={pageVariants}
-    initial="initial"
-    animate="animate"
-    exit="exit"
-    className="min-h-screen"
-  >
-    {children}
-  </motion.div>
+// Use forwardRef to properly handle refs from AnimatePresence
+const PageWrapper = React.forwardRef<HTMLDivElement, { children: React.ReactNode }>(
+  ({ children }, ref) => (
+    <motion.div
+      ref={ref}
+      variants={pageVariants}
+      initial="initial"
+      animate="animate"
+      exit="exit"
+      className="min-h-screen"
+    >
+      {children}
+    </motion.div>
+  )
 );
+
+PageWrapper.displayName = "PageWrapper";
 
 const AnimatedRoutes = () => {
   const location = useLocation();
