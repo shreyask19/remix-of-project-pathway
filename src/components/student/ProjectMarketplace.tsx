@@ -33,11 +33,13 @@ import {
 import { useChallenges, type Challenge } from "@/hooks/useChallenges";
 import { formatDeadline } from "@/lib/transformers";
 
+type ChallengeWithCompany = Challenge & { company: { company_name: string; logo_url: string } | null };
+
 const ProjectMarketplace = () => {
   const [activeFilter, setActiveFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("deadline");
-  const [selectedProject, setSelectedProject] = useState<(Challenge & { companyName: string }) | null>(null);
+  const [selectedProject, setSelectedProject] = useState<ChallengeWithCompany | null>(null);
   const [showApplyModal, setShowApplyModal] = useState(false);
 
   // Use the useChallenges hook with server-side filtering
@@ -50,16 +52,6 @@ const ProjectMarketplace = () => {
     searchQuery: searchQuery.trim() || undefined,
     category: activeFilter !== "all" ? activeFilter : undefined,
   });
-
-  // Transform challenges for display
-  const transformedChallenges = useMemo(() => {
-    if (!challenges) return [];
-    return challenges.map(c => ({
-      ...c,
-      companyName: c.company?.company_name || "Heuristic Labs",
-      logoUrl: c.company?.logo_url,
-    }));
-  }, [rawChallenges]);
 
   // Get applied challenge IDs
   const appliedChallengeIds = useMemo(() => {
@@ -136,7 +128,7 @@ const ProjectMarketplace = () => {
     }
   };
 
-  const openApplyModal = (project: Challenge) => {
+  const openApplyModal = (project: ChallengeWithCompany) => {
     if (appliedChallengeIds.has(project.id)) {
       toast.info("Already Applied", {
         description: "You've already applied to this project",
@@ -258,11 +250,11 @@ const ProjectMarketplace = () => {
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-foreground text-background flex items-center justify-center font-bold">
-                      {project.company?.companyName?.[0] || "H"}
+                      {project.company?.company_name?.[0] || "H"}
                     </div>
                     <div>
                       <p className="font-medium text-foreground">
-                        {project.company?.companyName || "Heuristic Labs"}
+                        {project.company?.company_name || "Heuristic Labs"}
                       </p>
                       <div className="flex items-center gap-2">
                         <span className={`text-xs px-2 py-0.5 rounded-full ${
@@ -290,14 +282,14 @@ const ProjectMarketplace = () => {
                 <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{project.description}</p>
 
                 <div className="flex flex-wrap gap-2 mb-4">
-                  {project.requiredSkills.slice(0, 3).map((skill) => (
+                  {(project.required_skills || []).slice(0, 3).map((skill) => (
                     <span key={skill} className="status-badge status-badge-muted text-xs">
                       {skill}
                     </span>
                   ))}
-                  {project.requiredSkills.length > 3 && (
+                  {(project.required_skills || []).length > 3 && (
                     <span className="status-badge status-badge-muted text-xs">
-                      +{project.requiredSkills.length - 3}
+                      +{(project.required_skills || []).length - 3}
                     </span>
                   )}
                 </div>
@@ -349,12 +341,12 @@ const ProjectMarketplace = () => {
             <div className="py-4">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-12 h-12 rounded-xl bg-foreground text-background flex items-center justify-center font-bold text-lg">
-                  {selectedProject.company?.companyName?.[0] || "H"}
+                  {selectedProject.company?.company_name?.[0] || "H"}
                 </div>
                 <div>
                   <h4 className="font-bold text-foreground">{selectedProject.title}</h4>
                   <p className="text-sm text-muted-foreground">
-                    {selectedProject.company?.companyName || "Heuristic Labs"}
+                    {selectedProject.company?.company_name || "Heuristic Labs"}
                   </p>
                 </div>
               </div>
@@ -380,7 +372,7 @@ const ProjectMarketplace = () => {
 
               <p className="text-sm text-muted-foreground mt-4">
                 By applying, you commit to completing this project within the deadline. 
-                Your profile will be shared with {selectedProject.company?.companyName || "the company"}.
+                Your profile will be shared with {selectedProject.company?.company_name || "the company"}.
               </p>
             </div>
           )}
