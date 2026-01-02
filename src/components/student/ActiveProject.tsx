@@ -1,24 +1,51 @@
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { Clock, CheckCircle, Circle, Upload } from "lucide-react";
-import fintechMockup from "@/assets/fintech-app-mockup.png";
+import { Clock, CheckCircle, Circle, Upload, Briefcase } from "lucide-react";
+import { useActiveProjects } from "@/hooks/useActiveProjects";
+import { Loader2 } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 
 const ActiveProject = () => {
-  const project = {
-    company: "Revolut",
-    title: "Fintech App Redesign",
-    difficulty: "Medium",
-    credits: 75,
-    deadline: "4 days left",
-    progress: 65,
-    description: "Redesign the user onboarding flow to increase conversion by 15%. Focus on simplification and trust signals.",
-    milestones: [
-      { title: "Research & Analysis", completed: true },
-      { title: "Wireframes", completed: true },
-      { title: "High-fidelity Mockups", completed: false, current: true },
-      { title: "Prototype & Testing", completed: false },
-    ],
-  };
+  const { activeProject, isLoading } = useActiveProjects();
+
+  if (isLoading) {
+    return (
+      <div className="dashboard-card flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!activeProject) {
+    return (
+      <div className="dashboard-card">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-lg font-bold text-foreground">Active Project</h2>
+        </div>
+        <div className="text-center py-12">
+          <div className="w-16 h-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4">
+            <Briefcase className="w-8 h-8" />
+          </div>
+          <h3 className="font-bold text-foreground mb-2">No Active Projects</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Apply to a challenge from the Project Marketplace to get started
+          </p>
+          <Button className="rounded-2xl">Browse Projects</Button>
+        </div>
+      </div>
+    );
+  }
+
+  const deadlineText = activeProject.deadline
+    ? formatDistanceToNow(new Date(activeProject.deadline), { addSuffix: true })
+    : "No deadline";
+
+  const milestones = [
+    { title: "Project Applied", completed: true },
+    { title: "Work Started", completed: activeProject.progress >= 30, current: activeProject.progress >= 10 && activeProject.progress < 30 },
+    { title: "Submitted", completed: activeProject.progress >= 70, current: activeProject.progress >= 30 && activeProject.progress < 70 },
+    { title: "Graded", completed: activeProject.progress === 100, current: activeProject.progress >= 70 && activeProject.progress < 100 },
+  ];
 
   return (
     <div className="dashboard-card">
@@ -29,46 +56,52 @@ const ActiveProject = () => {
 
       <div className="flex flex-col lg:flex-row gap-6">
         <div className="lg:w-1/2">
-          <div className="rounded-2xl overflow-hidden bg-foreground aspect-video flex items-center justify-center">
-            <img src={fintechMockup} alt={project.title} className="h-full object-contain" />
+          <div className="rounded-2xl overflow-hidden bg-gradient-to-br from-primary/20 to-primary/5 aspect-video flex items-center justify-center">
+            <div className="text-center p-6">
+              <div className="w-16 h-16 rounded-2xl bg-primary/20 text-primary flex items-center justify-center mx-auto mb-3">
+                <Briefcase className="w-8 h-8" />
+              </div>
+              <p className="text-lg font-bold text-foreground">{activeProject.title}</p>
+              <p className="text-sm text-muted-foreground">{activeProject.company}</p>
+            </div>
           </div>
         </div>
 
         <div className="lg:w-1/2">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center text-sm font-bold">
-              {project.company[0]}
+              {activeProject.company[0]}
             </div>
-            <span className="text-sm text-muted-foreground">{project.company}</span>
+            <span className="text-sm text-muted-foreground">{activeProject.company}</span>
             <span className="ml-auto status-badge bg-destructive/10 text-destructive">
               <Clock className="w-3 h-3 mr-1" />
-              {project.deadline}
+              {deadlineText}
             </span>
           </div>
 
-          <h3 className="text-xl font-bold text-foreground mb-2">{project.title}</h3>
-          <p className="text-muted-foreground text-sm mb-4">{project.description}</p>
+          <h3 className="text-xl font-bold text-foreground mb-2">{activeProject.title}</h3>
+          <p className="text-muted-foreground text-sm mb-4 line-clamp-2">{activeProject.description}</p>
 
           <div className="flex items-center gap-4 mb-4">
             <span className={`status-badge ${
-              project.difficulty === "Easy" ? "bg-success/10 text-success" :
-              project.difficulty === "Medium" ? "bg-warning/10 text-warning" :
+              activeProject.difficulty === "Easy" ? "bg-success/10 text-success" :
+              activeProject.difficulty === "Medium" ? "bg-warning/10 text-warning" :
               "bg-destructive/10 text-destructive"
             }`}>
-              {project.difficulty}
+              {activeProject.difficulty}
             </span>
-            <span className="text-sm font-medium text-primary">{project.credits} Credits</span>
+            <span className="text-sm font-medium text-primary">{activeProject.credits} Credits</span>
           </div>
 
           <div className="flex items-center justify-between text-sm mb-2">
             <span className="text-muted-foreground">Progress</span>
-            <span className="text-primary font-medium">{project.progress}%</span>
+            <span className="text-primary font-medium">{activeProject.progress}%</span>
           </div>
-          <Progress value={project.progress} className="h-2 mb-4" />
+          <Progress value={activeProject.progress} className="h-2 mb-4" />
 
           {/* Milestones */}
           <div className="space-y-2 mb-6">
-            {project.milestones.map((milestone, idx) => (
+            {milestones.map((milestone, idx) => (
               <div key={idx} className="flex items-center gap-3">
                 {milestone.completed ? (
                   <CheckCircle className="w-4 h-4 text-success" />

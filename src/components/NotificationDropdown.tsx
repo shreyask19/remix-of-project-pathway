@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -10,124 +9,19 @@ import {
   CheckCircle, 
   AlertTriangle, 
   Briefcase, 
-  Award, 
   MessageCircle,
   X,
-  Check
+  Check,
+  Loader2
 } from "lucide-react";
-
-interface Notification {
-  id: string;
-  type: "success" | "warning" | "info" | "message";
-  title: string;
-  message: string;
-  time: string;
-  read: boolean;
-}
+import { useNotifications } from "@/hooks/useNotifications";
 
 interface NotificationDropdownProps {
   role?: "student" | "teacher" | "company";
 }
 
 const NotificationDropdown = ({ role = "student" }: NotificationDropdownProps) => {
-  const [notifications, setNotifications] = useState<Notification[]>(() => {
-    const baseNotifications: Notification[] = [
-      {
-        id: "1",
-        type: "success",
-        title: "Project Approved",
-        message: "Your submission was accepted and graded!",
-        time: "2 hours ago",
-        read: false,
-      },
-      {
-        id: "2",
-        type: "warning",
-        title: "Deadline Approaching",
-        message: "Fintech App Redesign due in 3 days",
-        time: "5 hours ago",
-        read: false,
-      },
-      {
-        id: "3",
-        type: "info",
-        title: "New Challenge Available",
-        message: "Tesla posted a new UX Design project",
-        time: "1 day ago",
-        read: true,
-      },
-      {
-        id: "4",
-        type: "message",
-        title: "Interview Request",
-        message: "Stripe wants to schedule an interview",
-        time: "2 days ago",
-        read: true,
-      },
-    ];
-
-    if (role === "teacher") {
-      return [
-        {
-          id: "1",
-          type: "warning",
-          title: "Student Alert",
-          message: "Emma Wilson has low progress",
-          time: "1 hour ago",
-          read: false,
-        },
-        {
-          id: "2",
-          type: "info",
-          title: "Grade Pending",
-          message: "5 submissions waiting for approval",
-          time: "3 hours ago",
-          read: false,
-        },
-        {
-          id: "3",
-          type: "success",
-          title: "Exemption Approved",
-          message: "Marcus Reed's exemption was processed",
-          time: "1 day ago",
-          read: true,
-        },
-      ];
-    }
-
-    if (role === "company") {
-      return [
-        {
-          id: "1",
-          type: "info",
-          title: "New Submission",
-          message: "3 students submitted for API Challenge",
-          time: "30 mins ago",
-          read: false,
-        },
-        {
-          id: "2",
-          type: "success",
-          title: "Candidate Accepted",
-          message: "Alex Chen accepted your offer!",
-          time: "2 hours ago",
-          read: false,
-        },
-        {
-          id: "3",
-          type: "message",
-          title: "Talent Match",
-          message: "5 new students match your criteria",
-          time: "1 day ago",
-          read: true,
-        },
-      ];
-    }
-
-    return baseNotifications;
-  });
-
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const { notifications, unreadCount, isLoading, markAsRead, markAllAsRead } = useNotifications();
 
   const getIcon = (type: string) => {
     switch (type) {
@@ -144,18 +38,16 @@ const NotificationDropdown = ({ role = "student" }: NotificationDropdownProps) =
     }
   };
 
-  const markAsRead = (id: string) => {
-    setNotifications(prev => 
-      prev.map(n => n.id === id ? { ...n, read: true } : n)
-    );
-  };
-
-  const markAllAsRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-  };
-
-  const dismissNotification = (id: string) => {
-    setNotifications(prev => prev.filter(n => n.id !== id));
+  const formatTime = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(hours / 24);
+    
+    if (days > 0) return `${days} day${days > 1 ? 's' : ''} ago`;
+    if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+    return 'Just now';
   };
 
   return (
@@ -178,7 +70,8 @@ const NotificationDropdown = ({ role = "student" }: NotificationDropdownProps) =
               variant="ghost" 
               size="sm" 
               className="text-xs text-muted-foreground hover:text-foreground gap-1"
-              onClick={markAllAsRead}
+              onClick={() => markAllAsRead.mutate()}
+              disabled={markAllAsRead.isPending}
             >
               <Check className="w-3 h-3" />
               Mark all read
@@ -187,10 +80,14 @@ const NotificationDropdown = ({ role = "student" }: NotificationDropdownProps) =
         </div>
         
         <div className="max-h-80 overflow-y-auto">
-          {notifications.length === 0 ? (
+          {isLoading ? (
+            <div className="p-6 text-center">
+              <Loader2 className="w-6 h-6 animate-spin text-primary mx-auto" />
+            </div>
+          ) : notifications.length === 0 ? (
             <div className="p-6 text-center">
               <Bell className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">No notifications</p>
+              <p className="text-sm text-muted-foreground">No notifications yet</p>
             </div>
           ) : (
             notifications.map((notification) => (
@@ -199,32 +96,21 @@ const NotificationDropdown = ({ role = "student" }: NotificationDropdownProps) =
                 className={`p-4 border-b border-border last:border-0 hover:bg-secondary/50 transition-colors cursor-pointer ${
                   !notification.read ? "bg-primary/5" : ""
                 }`}
-                onClick={() => markAsRead(notification.id)}
+                onClick={() => markAsRead.mutate(notification.id)}
               >
                 <div className="flex items-start gap-3">
                   <div className="mt-0.5 shrink-0">
                     {getIcon(notification.type)}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className={`text-sm font-medium ${!notification.read ? "text-foreground" : "text-muted-foreground"}`}>
-                        {notification.title}
-                      </p>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          dismissNotification(notification.id);
-                        }}
-                        className="text-muted-foreground hover:text-foreground shrink-0"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
+                    <p className={`text-sm font-medium ${!notification.read ? "text-foreground" : "text-muted-foreground"}`}>
+                      {notification.title}
+                    </p>
                     <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
                       {notification.message}
                     </p>
                     <p className="text-xs text-muted-foreground/70 mt-1">
-                      {notification.time}
+                      {formatTime(notification.createdAt)}
                     </p>
                   </div>
                   {!notification.read && (

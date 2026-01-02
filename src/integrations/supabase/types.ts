@@ -328,6 +328,36 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          read: boolean
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          read?: boolean
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          read?: boolean
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -644,6 +674,26 @@ export type Database = {
           p_credits: number
           p_submission_id: string
           p_teacher_id: string
+        }
+        Returns: Json
+      }
+      complete_student_onboarding: {
+        Args: {
+          p_batch?: string
+          p_career_goals?: string[]
+          p_current_semester?: string
+          p_current_subjects?: string[]
+          p_existing_skills?: string[]
+          p_github_url?: string
+          p_graduation_year?: string
+          p_hours_per_week?: string
+          p_interests?: string[]
+          p_linkedin_url?: string
+          p_portfolio_url?: string
+          p_preferred_project_types?: string[]
+          p_university_name?: string
+          p_university_program?: string
+          p_user_id: string
         }
         Returns: Json
       }
