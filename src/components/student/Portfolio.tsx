@@ -17,25 +17,27 @@ import {
   Linkedin
 } from "lucide-react";
 import { toast } from "sonner";
-import { useUser } from "@/contexts/UserContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { useStudentProfile } from "@/hooks/useStudentProfile";
 import jsPDF from "jspdf";
 
 const Portfolio = () => {
-  const { user, updateUser } = useUser();
+  const { profile: authProfile } = useAuth();
+  const { profile: studentProfile, credits } = useStudentProfile();
   const [isExporting, setIsExporting] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const profile = {
-    name: user?.firstName ? `${user.firstName} ${user.lastName}` : "Student",
+    name: authProfile ? `${authProfile.firstName} ${authProfile.lastName}` : "Student",
     title: "Full Stack Developer",
-    university: user?.universityName || "University",
-    email: user?.email || "student@university.edu",
-    totalCredits: 245,
-    projectsCompleted: 8,
+    university: studentProfile?.university_name || "University",
+    email: authProfile?.email || "student@university.edu",
+    totalCredits: credits || 0,
+    projectsCompleted: 0,
     skillScore: 94,
-    topSkills: user?.existingSkills?.slice(0, 5) || ["React", "Node.js", "Python", "Figma", "PostgreSQL"],
+    topSkills: studentProfile?.existing_skills?.slice(0, 5) || ["React", "Node.js", "Python", "Figma", "PostgreSQL"],
   };
 
   const projects = [
@@ -229,7 +231,7 @@ const Portfolio = () => {
     setIsSharing(true);
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    const shareUrl = `https://heuristic.app/portfolio/${user?.firstName?.toLowerCase() || 'student'}-${Date.now().toString(36)}`;
+    const shareUrl = `https://heuristic.app/portfolio/${authProfile?.firstName?.toLowerCase() || 'student'}-${Date.now().toString(36)}`;
     
     if (navigator.share) {
       try {
@@ -331,9 +333,9 @@ const Portfolio = () => {
               <p className="text-muted-foreground">{profile.title}</p>
               <p className="text-sm text-muted-foreground">{profile.university}</p>
               <div className="flex items-center gap-2 mt-3">
-                {user?.githubUrl ? (
+                {studentProfile?.github_url ? (
                   <Button variant="outline" size="sm" className="rounded-xl gap-2" asChild>
-                    <a href={user.githubUrl} target="_blank" rel="noopener noreferrer">
+                    <a href={studentProfile.github_url} target="_blank" rel="noopener noreferrer">
                       <Github className="w-4 h-4" />
                       GitHub
                     </a>
@@ -344,9 +346,9 @@ const Portfolio = () => {
                     GitHub
                   </Button>
                 )}
-                {user?.linkedinUrl ? (
+                {studentProfile?.linkedin_url ? (
                   <Button variant="outline" size="sm" className="rounded-xl gap-2" asChild>
-                    <a href={user.linkedinUrl} target="_blank" rel="noopener noreferrer">
+                    <a href={studentProfile.linkedin_url} target="_blank" rel="noopener noreferrer">
                       <Linkedin className="w-4 h-4" />
                       LinkedIn
                     </a>
