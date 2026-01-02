@@ -1,6 +1,14 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { 
   Search, 
   Mail, 
@@ -9,53 +17,143 @@ import {
   GraduationCap,
   X,
   FileText,
-  Code,
   Check,
   Star,
   Users,
-  Loader2
+  Loader2,
+  ArrowUpDown,
+  Filter,
+  Briefcase,
+  Send
 } from "lucide-react";
 import { useTalentPool, TalentStudent } from "@/hooks/useTalentPool";
 import { useHiringPipeline } from "@/hooks/useHiringPipeline";
+import { useInvitationActions } from "@/hooks/useInvitationActions";
+
+type SortOption = "credits" | "projects" | "name";
+type AvailabilityFilter = "all" | "available" | "hired";
 
 const TalentPool = () => {
   const { talents, isLoading } = useTalentPool();
   const { addToPipeline } = useHiringPipeline();
+  const { sendInvitation } = useInvitationActions();
   
   const [searchQuery, setSearchQuery] = useState("");
   const [activeSkillFilter, setActiveSkillFilter] = useState<string | null>(null);
   const [selectedTalent, setSelectedTalent] = useState<TalentStudent | null>(null);
   const [contactingId, setContactingId] = useState<string | null>(null);
   const [contactedIds, setContactedIds] = useState<Set<string>>(new Set());
+  
+  // Enhanced filtering & sorting
+  const [sortBy, setSortBy] = useState<SortOption>("credits");
+  const [availabilityFilter, setAvailabilityFilter] = useState<AvailabilityFilter>("available");
+  
+  // Invitation modal
+  const [inviteModalOpen, setInviteModalOpen] = useState(false);
+  const [inviteTalent, setInviteTalent] = useState<TalentStudent | null>(null);
+  const [inviteRole, setInviteRole] = useState("");
+  const [inviteMessage, setInviteMessage] = useState("");
 
-  const skillFilters = ["All", "Python", "React", "Node.js", "TypeScript", "Data Science", "Machine Learning"];
+  const skillFilters = ["All", "Python", "React", "Node.js", "TypeScript", "Data Science", "Machine Learning", "Java", "SQL"];
 
-  const filteredTalents = (talents || []).filter(talent => {
-    const fullName = `${talent.firstName} ${talent.lastName}`.toLowerCase();
-    const matchesSearch = fullName.includes(searchQuery.toLowerCase()) ||
-                         (talent.university || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         talent.skills.some(s => s.toLowerCase().includes(searchQuery.toLowerCase()));
-    const matchesSkill = !activeSkillFilter || activeSkillFilter === "All" || 
-                        talent.skills.some(s => s.toLowerCase() === activeSkillFilter.toLowerCase());
-    return matchesSearch && matchesSkill;
-  });
+  // Apply filters and sorting
+  const filteredTalents = useMemo(() => {
+    let result = talents || [];
+    
+    // Search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(talent => {
+        const fullName = `${talent.firstName} ${talent.lastName}`.toLowerCase();
+        return fullName.includes(query) ||
+               (talent.university || "").toLowerCase().includes(query) ||
+               talent.skills.some(s => s.toLowerCase().includes(query));
+      });
+    }
+    
+    // Skill filter
+    if (activeSkillFilter && activeSkillFilter !== "All") {
+      result = result.filter(talent =>
+        talent.skills.some(s => s.toLowerCase() === activeSkillFilter.toLowerCase())
+      );
+    }
+    
+    // Availability filter
+    if (availabilityFilter === "available") {
+      result = result.filter(talent => talent.available);
+    } else if (availabilityFilter === "hired") {
+      result = result.filter(talent => !talent.available);
+    }
+    
+    // Sorting
+    result = [...result].sort((a, b) => {
+      switch (sortBy) {
+        case "credits":
+          return b.credits - a.credits;
+        case "projects":
+          return b.projectsCompleted - a.projectsCompleted;
+        case "name":
+          return `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`);
+        default:
+          return 0;
+      }
+    });
+    
+    return result;
+  }, [talents, searchQuery, activeSkillFilter, availabilityFilter, sortBy]);
 
   const handleContact = async (talent: TalentStudent) => {
     setContactingId(talent.userId);
     try {
       await addToPipeline.mutateAsync({ 
         studentId: talent.userId, 
-        notes: "Contacted via Talent Pool" 
+        notes: "Added via Talent Pool" 
       });
       setContactedIds(prev => new Set([...prev, talent.userId]));
-      toast.success(`Added ${talent.firstName} to your hiring pipeline`, {
-        description: "You can track them in the Hiring Pipeline tab"
-      });
+      toast.success(`Added ${talent.firstName} to your hiring pipeline`);
     } catch (error) {
-      // Error already handled by hook
+      // Error handled by hook
     } finally {
       setContactingId(null);
     }
+  };
+
+  const handleSendInvitation = async () => {
+    if (!inviteTalent || !inviteRole.trim()) {
+      toast.error("Please enter a role");
+      return;
+    }
+
+    try {
+      // First add to pipeline if not already added
+      if (!contactedIds.has(inviteTalent.userId)) {
+        await addToPipeline.mutateAsync({ 
+          studentId: inviteTalent.userId, 
+          notes: inviteMessage || `Interview for ${inviteRole}` 
+        });
+        setContactedIds(prev => new Set([...prev, inviteTalent.userId]));
+      }
+
+      // Send interview invitation
+      await sendInvitation.mutateAsync({
+        studentId: inviteTalent.userId,
+        role: inviteRole,
+        type: "interview",
+        message: inviteMessage,
+      });
+
+      setInviteModalOpen(false);
+      setInviteTalent(null);
+      setInviteRole("");
+      setInviteMessage("");
+    } catch (error) {
+      // Error handled by hook
+    }
+  };
+
+  const openInviteModal = (talent: TalentStudent) => {
+    setInviteTalent(talent);
+    setInviteModalOpen(true);
   };
 
   const handleViewProfile = (talent: TalentStudent) => {
@@ -122,146 +220,195 @@ const TalentPool = () => {
         </div>
       </div>
 
-      {/* Skill Filters */}
-      <div className="flex gap-2 flex-wrap">
-        {skillFilters.map((skill) => (
-          <button
-            key={skill}
-            onClick={() => setActiveSkillFilter(skill === "All" ? null : skill)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              (skill === "All" && !activeSkillFilter) || activeSkillFilter === skill
-                ? "bg-primary text-primary-foreground"
-                : "bg-secondary text-muted-foreground hover:text-foreground"
-            }`}
+      {/* Filters and Sorting */}
+      <div className="flex flex-wrap items-center gap-4">
+        {/* Skill Filters */}
+        <div className="flex gap-2 flex-wrap flex-1">
+          {skillFilters.map((skill) => (
+            <button
+              key={skill}
+              onClick={() => setActiveSkillFilter(skill === "All" ? null : skill)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                (skill === "All" && !activeSkillFilter) || activeSkillFilter === skill
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {skill}
+            </button>
+          ))}
+        </div>
+
+        {/* Availability Filter */}
+        <div className="flex items-center gap-2">
+          <Filter className="w-4 h-4 text-muted-foreground" />
+          <select
+            value={availabilityFilter}
+            onChange={(e) => setAvailabilityFilter(e.target.value as AvailabilityFilter)}
+            className="px-3 py-2 rounded-lg bg-secondary text-foreground text-sm border-0 outline-none focus:ring-2 focus:ring-primary/20"
           >
-            {skill}
-          </button>
-        ))}
+            <option value="available">Available Only</option>
+            <option value="all">All Candidates</option>
+            <option value="hired">Hired</option>
+          </select>
+        </div>
+
+        {/* Sort */}
+        <div className="flex items-center gap-2">
+          <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as SortOption)}
+            className="px-3 py-2 rounded-lg bg-secondary text-foreground text-sm border-0 outline-none focus:ring-2 focus:ring-primary/20"
+          >
+            <option value="credits">Sort by Credits</option>
+            <option value="projects">Sort by Projects</option>
+            <option value="name">Sort by Name</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Results Count */}
+      <div className="text-sm text-muted-foreground">
+        Showing {filteredTalents.length} candidate{filteredTalents.length !== 1 ? 's' : ''}
       </div>
 
       {/* Empty State */}
-      {filteredTalents.length === 0 && !isLoading && (
+      {filteredTalents.length === 0 && (
         <div className="dashboard-card text-center py-12">
           <div className="w-14 h-14 rounded-xl bg-secondary flex items-center justify-center mx-auto mb-4">
             <Users className="w-7 h-7 text-muted-foreground" />
           </div>
-          <h3 className="font-semibold text-foreground mb-2">No talents in the pool yet</h3>
+          <h3 className="font-semibold text-foreground mb-2">No matching talents</h3>
           <p className="text-muted-foreground max-w-md mx-auto">
-            As students complete projects and earn credits, top performers will appear here. 
-            Check back soon to discover talented candidates.
+            {searchQuery || activeSkillFilter 
+              ? "Try adjusting your filters to find more candidates."
+              : "As students complete projects and earn credits, top performers will appear here."}
           </p>
         </div>
       )}
 
       {/* Talent Grid */}
-      <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {filteredTalents.map((talent) => (
-          <div key={talent.userId} className="dashboard-card hover:border-primary/20">
-            {/* Header */}
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-semibold">
-                  {getInitials(talent.firstName, talent.lastName)}
+      {filteredTalents.length > 0 && (
+        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {filteredTalents.map((talent) => (
+            <div key={talent.userId} className="dashboard-card hover:border-primary/20">
+              {/* Header */}
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-semibold">
+                    {getInitials(talent.firstName, talent.lastName)}
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-foreground">{talent.firstName} {talent.lastName}</h3>
+                    <p className="text-sm text-muted-foreground">{talent.university || "University not specified"}</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-semibold text-foreground">{talent.firstName} {talent.lastName}</h3>
-                  <p className="text-sm text-muted-foreground">{talent.university || "University not specified"}</p>
+                {talent.available ? (
+                  <span className="status-badge status-badge-success">Available</span>
+                ) : (
+                  <span className="status-badge status-badge-muted">Hired</span>
+                )}
+              </div>
+
+              {/* Stats */}
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                <div className="text-center py-2 rounded-lg bg-secondary">
+                  <p className="text-lg font-bold text-primary">{Math.min(100, Math.round(talent.credits / 5))}%</p>
+                  <p className="text-xs text-muted-foreground">Score</p>
+                </div>
+                <div className="text-center py-2 rounded-lg bg-secondary">
+                  <p className="text-lg font-bold text-foreground">{talent.credits}</p>
+                  <p className="text-xs text-muted-foreground">Credits</p>
+                </div>
+                <div className="text-center py-2 rounded-lg bg-secondary">
+                  <p className="text-lg font-bold text-foreground">{talent.projectsCompleted}</p>
+                  <p className="text-xs text-muted-foreground">Projects</p>
                 </div>
               </div>
-              {talent.available ? (
-                <span className="status-badge status-badge-success">Available</span>
-              ) : (
-                <span className="status-badge status-badge-muted">Hired</span>
-              )}
-            </div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-3 gap-2 mb-4">
-              <div className="text-center py-2 rounded-lg bg-secondary">
-                <p className="text-lg font-bold text-primary">{Math.min(100, Math.round(talent.credits / 5))}%</p>
-                <p className="text-xs text-muted-foreground">Score</p>
+              {/* Skills */}
+              <div className="flex flex-wrap gap-1.5 mb-4">
+                {talent.skills.slice(0, 4).map((skill) => (
+                  <span key={skill} className="text-xs px-2 py-1 rounded-md bg-primary/10 text-primary">
+                    {skill}
+                  </span>
+                ))}
+                {talent.skills.length > 4 && (
+                  <span className="text-xs px-2 py-1 rounded-md bg-secondary text-muted-foreground">
+                    +{talent.skills.length - 4}
+                  </span>
+                )}
+                {talent.skills.length === 0 && (
+                  <span className="text-xs px-2 py-1 rounded-md bg-secondary text-muted-foreground">
+                    No skills listed
+                  </span>
+                )}
               </div>
-              <div className="text-center py-2 rounded-lg bg-secondary">
-                <p className="text-lg font-bold text-foreground">{talent.credits}</p>
-                <p className="text-xs text-muted-foreground">Credits</p>
-              </div>
-              <div className="text-center py-2 rounded-lg bg-secondary">
-                <p className="text-lg font-bold text-foreground">{talent.projectsCompleted}</p>
-                <p className="text-xs text-muted-foreground">Projects</p>
-              </div>
-            </div>
 
-            {/* Skills */}
-            <div className="flex flex-wrap gap-1.5 mb-4">
-              {talent.skills.slice(0, 4).map((skill) => (
-                <span key={skill} className="text-xs px-2 py-1 rounded-md bg-primary/10 text-primary">
-                  {skill}
-                </span>
-              ))}
-              {talent.skills.length > 4 && (
-                <span className="text-xs px-2 py-1 rounded-md bg-secondary text-muted-foreground">
-                  +{talent.skills.length - 4}
-                </span>
-              )}
-              {talent.skills.length === 0 && (
-                <span className="text-xs px-2 py-1 rounded-md bg-secondary text-muted-foreground">
-                  No skills listed
-                </span>
-              )}
-            </div>
-
-            {/* Top Project */}
-            {talent.projectsCompleted > 0 && (
-              <div className="p-3 rounded-lg bg-secondary/50 mb-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <Award className="w-4 h-4 text-primary" />
-                  <span className="text-xs font-medium text-foreground">Top Performer</span>
+              {/* Top Project */}
+              {talent.projectsCompleted > 0 && (
+                <div className="p-3 rounded-lg bg-secondary/50 mb-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Award className="w-4 h-4 text-primary" />
+                    <span className="text-xs font-medium text-foreground">Top Performer</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground line-clamp-1">
+                    {talent.projectsCompleted} project{talent.projectsCompleted !== 1 ? 's' : ''} completed
+                  </p>
                 </div>
-                <p className="text-sm text-muted-foreground line-clamp-1">
-                  {talent.projectsCompleted} project{talent.projectsCompleted !== 1 ? 's' : ''} completed
-                </p>
+              )}
+
+              {/* Info */}
+              <div className="flex items-center justify-between text-xs text-muted-foreground mb-4">
+                <span className="flex items-center gap-1">
+                  <GraduationCap className="w-3.5 h-3.5" />
+                  {talent.university || "Student"}
+                </span>
+                <span>{talent.credits} credits earned</span>
               </div>
-            )}
 
-            {/* Info */}
-            <div className="flex items-center justify-between text-xs text-muted-foreground mb-4">
-              <span className="flex items-center gap-1">
-                <GraduationCap className="w-3.5 h-3.5" />
-                {talent.university || "Student"}
-              </span>
-              <span>{talent.credits} credits earned</span>
-            </div>
-
-            {/* Actions */}
-            <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                className="flex-1 rounded-lg gap-2"
-                onClick={() => handleViewProfile(talent)}
-              >
-                <ExternalLink className="w-4 h-4" />
-                Profile
-              </Button>
-              {talent.available && (
+              {/* Actions */}
+              <div className="flex gap-2">
                 <Button 
+                  variant="outline" 
                   className="flex-1 rounded-lg gap-2"
-                  onClick={() => handleContact(talent)}
-                  disabled={contactingId === talent.userId || contactedIds.has(talent.userId)}
+                  onClick={() => handleViewProfile(talent)}
                 >
-                  {contactingId === talent.userId ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : contactedIds.has(talent.userId) ? (
-                    <Check className="w-4 h-4" />
-                  ) : (
-                    <Mail className="w-4 h-4" />
-                  )}
-                  {contactedIds.has(talent.userId) ? "Added" : "Add to Pipeline"}
+                  <ExternalLink className="w-4 h-4" />
+                  Profile
                 </Button>
-              )}
+                {talent.available && (
+                  <>
+                    {contactedIds.has(talent.userId) ? (
+                      <Button 
+                        className="flex-1 rounded-lg gap-2"
+                        onClick={() => openInviteModal(talent)}
+                      >
+                        <Briefcase className="w-4 h-4" />
+                        Invite
+                      </Button>
+                    ) : (
+                      <Button 
+                        className="flex-1 rounded-lg gap-2"
+                        onClick={() => handleContact(talent)}
+                        disabled={contactingId === talent.userId}
+                      >
+                        {contactingId === talent.userId ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Mail className="w-4 h-4" />
+                        )}
+                        Add to Pipeline
+                      </Button>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Profile Modal */}
       {selectedTalent && (
@@ -338,31 +485,93 @@ const TalentPool = () => {
                 Download Resume
               </Button>
               {selectedTalent.available && (
-                <Button 
-                  className="flex-1 rounded-lg gap-2"
-                  onClick={() => {
-                    handleContact(selectedTalent);
-                    setSelectedTalent(null);
-                  }}
-                  disabled={contactedIds.has(selectedTalent.userId)}
-                >
+                <>
                   {contactedIds.has(selectedTalent.userId) ? (
-                    <>
-                      <Check className="w-4 h-4" />
-                      Added to Pipeline
-                    </>
+                    <Button 
+                      className="flex-1 rounded-lg gap-2"
+                      onClick={() => {
+                        openInviteModal(selectedTalent);
+                        setSelectedTalent(null);
+                      }}
+                    >
+                      <Briefcase className="w-4 h-4" />
+                      Send Interview Invite
+                    </Button>
                   ) : (
-                    <>
+                    <Button 
+                      className="flex-1 rounded-lg gap-2"
+                      onClick={() => {
+                        handleContact(selectedTalent);
+                        setSelectedTalent(null);
+                      }}
+                    >
                       <Mail className="w-4 h-4" />
                       Add to Pipeline
-                    </>
+                    </Button>
                   )}
-                </Button>
+                </>
               )}
             </div>
           </div>
         </div>
       )}
+
+      {/* Interview Invitation Modal */}
+      <Dialog open={inviteModalOpen} onOpenChange={setInviteModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Send Interview Invitation</DialogTitle>
+            <DialogDescription>
+              Invite {inviteTalent?.firstName} {inviteTalent?.lastName} for an interview
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">
+                Role / Position *
+              </label>
+              <input
+                type="text"
+                value={inviteRole}
+                onChange={(e) => setInviteRole(e.target.value)}
+                placeholder="e.g., Frontend Developer Intern"
+                className="w-full px-4 py-3 bg-secondary rounded-xl text-foreground border-0 outline-none focus:ring-2 focus:ring-primary/20"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">
+                Message (Optional)
+              </label>
+              <textarea
+                value={inviteMessage}
+                onChange={(e) => setInviteMessage(e.target.value)}
+                placeholder="Add a personal message..."
+                rows={3}
+                className="w-full px-4 py-3 bg-secondary rounded-xl text-foreground border-0 outline-none focus:ring-2 focus:ring-primary/20 resize-none"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setInviteModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSendInvitation}
+              disabled={sendInvitation.isPending || !inviteRole.trim()}
+              className="gap-2"
+            >
+              {sendInvitation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Send className="w-4 h-4" />
+              )}
+              Send Invitation
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
