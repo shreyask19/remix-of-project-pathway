@@ -15,7 +15,7 @@ import {
   Linkedin
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useUser } from "@/contexts/UserContext";
+
 import { useAuth } from "@/contexts/AuthContext";
 import { useTeacherProfile } from "@/hooks/useTeacherProfile";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,7 +24,6 @@ import HeuristicLogo from "@/components/HeuristicLogo";
 
 const TeacherOnboarding = () => {
   const navigate = useNavigate();
-  const { updateUser, setIsOnboarded } = useUser();
   const { user, completeOnboarding } = useAuth();
   const { saveProfile } = useTeacherProfile();
   const [currentStep, setCurrentStep] = useState(1);
@@ -205,10 +204,6 @@ const TeacherOnboarding = () => {
 
         // Mark as onboarded in database
         await completeOnboarding();
-
-        // Also update UserContext for backward compatibility
-        updateUser({ ...formData, role: "teacher" });
-        setIsOnboarded(true);
         
         toast.success(`Welcome, ${formData.firstName}! Your dashboard is ready.`);
         navigate("/teacher");

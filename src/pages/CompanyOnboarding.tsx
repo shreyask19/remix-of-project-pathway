@@ -16,7 +16,7 @@ import {
   Linkedin
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useUser } from "@/contexts/UserContext";
+
 import { useAuth } from "@/contexts/AuthContext";
 import { useCompanyProfile } from "@/hooks/useCompanyProfile";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,7 +25,6 @@ import HeuristicLogo from "@/components/HeuristicLogo";
 
 const CompanyOnboarding = () => {
   const navigate = useNavigate();
-  const { updateUser, setIsOnboarded } = useUser();
   const { user, completeOnboarding } = useAuth();
   const { saveProfile } = useCompanyProfile();
   const [currentStep, setCurrentStep] = useState(1);
@@ -192,10 +191,6 @@ const CompanyOnboarding = () => {
 
         // Mark as onboarded in database
         await completeOnboarding();
-
-        // Also update UserContext for backward compatibility
-        updateUser({ ...formData, role: "company" });
-        setIsOnboarded(true);
         
         toast.success(`Welcome, ${formData.firstName}! Start posting challenges.`);
         navigate("/company");

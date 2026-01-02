@@ -50,13 +50,15 @@ const CompanyProfile = () => {
     setIsSaving(true);
     try {
       await saveProfile.mutateAsync({
-        company_name: editedProfile.companyName,
+        companyName: editedProfile.companyName,
         industry: editedProfile.domain,
         website: editedProfile.website,
         headquarters: editedProfile.location,
-        company_size: editedProfile.employees,
+        companySize: editedProfile.employees,
         description: editedProfile.description,
-        hiring_roles: editedProfile.focusAreas,
+        contactRole: "",
+        hiringRoles: editedProfile.focusAreas,
+        requiredSkills: [],
       });
       setProfile(editedProfile);
       setIsEditing(false);
