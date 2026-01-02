@@ -9,14 +9,24 @@ import {
   CheckCircle,
   Clock,
   AlertTriangle,
-  Loader2
+  Loader2,
+  ShieldCheck
 } from "lucide-react";
 import { useState } from "react";
 import { useClassStudents } from "@/hooks/useClassStudents";
+import ReliabilityBadge from "@/components/shared/ReliabilityBadge";
+import AwardBadgeModal from "@/components/teacher/AwardBadgeModal";
 
 const StudentProgress = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [badgeModalOpen, setBadgeModalOpen] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<{ id: string; name: string } | null>(null);
   const { students, isLoading } = useClassStudents();
+
+  const openBadgeModal = (studentId: string, firstName: string, lastName: string) => {
+    setSelectedStudent({ id: studentId, name: `${firstName} ${lastName}` });
+    setBadgeModalOpen(true);
+  };
 
   const getGradeBadge = (grade: string | null) => {
     if (!grade) return <span className="text-xs text-muted-foreground">—</span>;
@@ -120,7 +130,10 @@ const StudentProgress = () => {
                         {student.firstName[0]}{student.lastName[0]}
                       </div>
                       <div>
-                        <p className="font-medium text-foreground">{student.firstName} {student.lastName}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-foreground">{student.firstName} {student.lastName}</p>
+                          <ReliabilityBadge studentId={student.userId} />
+                        </div>
                         <p className="text-xs text-muted-foreground">{student.email}</p>
                       </div>
                     </div>
@@ -147,10 +160,21 @@ const StudentProgress = () => {
                   <td className="py-4">{getIAStatusBadge(student.iaStatus)}</td>
                   <td className="py-4">{getExemptionBadge(student.examExemption)}</td>
                   <td className="py-4">
-                    <Button variant="ghost" size="sm" className="rounded-xl gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Eye className="w-4 h-4" />
-                      View
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="rounded-xl gap-2"
+                        onClick={() => openBadgeModal(student.userId, student.firstName, student.lastName)}
+                      >
+                        <ShieldCheck className="w-4 h-4" />
+                        Badge
+                      </Button>
+                      <Button variant="ghost" size="sm" className="rounded-xl gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Eye className="w-4 h-4" />
+                        View
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -171,6 +195,16 @@ const StudentProgress = () => {
           </div>
         </div>
       </div>
+
+      {/* Award Badge Modal */}
+      {selectedStudent && (
+        <AwardBadgeModal
+          open={badgeModalOpen}
+          onOpenChange={setBadgeModalOpen}
+          studentId={selectedStudent.id}
+          studentName={selectedStudent.name}
+        />
+      )}
     </div>
   );
 };

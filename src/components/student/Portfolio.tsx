@@ -20,12 +20,15 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { useStudentSubmissions } from "@/hooks/useSubmissions";
+import { useStudentBadges } from "@/hooks/useReliabilityBadge";
+import ReliabilityBadge from "@/components/shared/ReliabilityBadge";
 import jsPDF from "jspdf";
 
 const Portfolio = () => {
-  const { profile: authProfile } = useAuth();
+  const { profile: authProfile, user } = useAuth();
   const { profile: studentProfile, credits } = useStudentProfile();
   const { submissions, isLoading: submissionsLoading } = useStudentSubmissions();
+  const { badges } = useStudentBadges(user?.id);
   const [isExporting, setIsExporting] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [profileImage, setProfileImage] = useState<string | null>(null);
@@ -352,7 +355,10 @@ const Portfolio = () => {
               />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-foreground">{profile.name}</h3>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-xl font-bold text-foreground">{profile.name}</h3>
+                <ReliabilityBadge badges={badges} variant="small" />
+              </div>
               <p className="text-muted-foreground">{profile.title}</p>
               <p className="text-sm text-muted-foreground">{profile.university}</p>
               <div className="flex items-center gap-2 mt-3">
