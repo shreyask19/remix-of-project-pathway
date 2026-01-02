@@ -1,10 +1,9 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { 
   Award, 
   ExternalLink, 
   Github, 
-  Globe, 
   Share2, 
   Download,
   Code,
@@ -14,20 +13,82 @@ import {
   Star,
   CheckCircle,
   Camera,
-  Linkedin
+  Linkedin,
+  FolderOpen
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
+import { useStudentSubmissions } from "@/hooks/useSubmissions";
 import jsPDF from "jspdf";
 
 const Portfolio = () => {
   const { profile: authProfile } = useAuth();
   const { profile: studentProfile, credits } = useStudentProfile();
+  const { submissions, isLoading: submissionsLoading } = useStudentSubmissions();
   const [isExporting, setIsExporting] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Derive completed projects from real submissions
+  const completedProjects = useMemo(() => {
+    if (!submissions) return [];
+    return submissions
+      .filter(s => s.status === "graded" || s.status === "approved")
+      .map(s => ({
+        id: s.id,
+        title: s.challengeTitle || "Untitled Project",
+        company: s.companyName || "Company",
+        credits: s.challengeCredits || 0,
+        grade: s.grade && s.grade >= 90 ? "Excellent" : s.grade && s.grade >= 70 ? "Satisfied" : "Needs Improvement",
+        skills: s.challengeSkills || [],
+        icon: getProjectIcon(s.challengeCategory),
+        completedAt: s.gradedAt ? new Date(s.gradedAt).toLocaleDateString("en-US", { month: "short", year: "numeric" }) : "",
+        description: s.notes || s.challengeDescription?.slice(0, 100) || "",
+      }));
+  }, [submissions]);
+
+  // Derive skills breakdown from student profile
+  const skillsByCategory = useMemo(() => {
+    const skills = studentProfile?.existing_skills || [];
+    const categories: Record<string, string[]> = {
+      Frontend: [],
+      Backend: [],
+      Design: [],
+      Data: [],
+    };
+    
+    const categoryMap: Record<string, string> = {
+      "React": "Frontend", "TypeScript": "Frontend", "JavaScript": "Frontend", 
+      "Vue.js": "Frontend", "Angular": "Frontend", "HTML": "Frontend", 
+      "CSS": "Frontend", "Tailwind CSS": "Frontend", "Next.js": "Frontend",
+      "Node.js": "Backend", "Python": "Backend", "Java": "Backend",
+      "Django": "Backend", "Flask": "Backend", "Express": "Backend",
+      "PostgreSQL": "Backend", "MongoDB": "Backend", "SQL": "Backend",
+      "AWS": "Backend", "Docker": "Backend", "Kubernetes": "Backend",
+      "Figma": "Design", "UX Research": "Design", "UI Design": "Design",
+      "Prototyping": "Design", "Adobe XD": "Design", "Sketch": "Design",
+      "Data Analysis": "Data", "Machine Learning": "Data", "TensorFlow": "Data",
+      "PyTorch": "Data", "Pandas": "Data", "NumPy": "Data", "R": "Data",
+      "Data Science": "Data", "NLP": "Data", "Deep Learning": "Data",
+    };
+    
+    skills.forEach(skill => {
+      const category = categoryMap[skill] || "Backend";
+      if (categories[category]) {
+        categories[category].push(skill);
+      }
+    });
+    
+    return Object.entries(categories)
+      .filter(([_, skills]) => skills.length > 0)
+      .map(([category, skills]) => ({
+        category,
+        skills,
+        level: Math.min(100, 50 + skills.length * 10 + completedProjects.length * 5),
+      }));
+  }, [studentProfile?.existing_skills, completedProjects.length]);
 
   const profile = {
     name: authProfile ? `${authProfile.firstName} ${authProfile.lastName}` : "Student",
@@ -35,64 +96,21 @@ const Portfolio = () => {
     university: studentProfile?.university_name || "University",
     email: authProfile?.email || "student@university.edu",
     totalCredits: credits || 0,
-    projectsCompleted: 0,
-    skillScore: 94,
-    topSkills: studentProfile?.existing_skills?.slice(0, 5) || ["React", "Node.js", "Python", "Figma", "PostgreSQL"],
+    projectsCompleted: completedProjects.length,
+    skillScore: Math.min(100, 50 + completedProjects.length * 10 + (studentProfile?.existing_skills?.length || 0) * 2),
+    topSkills: studentProfile?.existing_skills?.slice(0, 5) || [],
   };
 
-  const projects = [
-    {
-      id: 1,
-      title: "Fintech App Redesign",
-      company: "Revolut",
-      credits: 75,
-      grade: "Excellent",
-      skills: ["Figma", "UX Research"],
-      icon: <Palette className="w-5 h-5" />,
-      completedAt: "Dec 2024",
-      description: "Redesigned mobile banking experience with focus on Gen-Z users"
-    },
-    {
-      id: 2,
-      title: "Payment API Integration",
-      company: "Stripe",
-      credits: 90,
-      grade: "Excellent",
-      skills: ["Node.js", "REST API"],
-      icon: <Database className="w-5 h-5" />,
-      completedAt: "Nov 2024",
-      description: "Built robust payment processing with webhook handling"
-    },
-    {
-      id: 3,
-      title: "React Component Library",
-      company: "Airbnb",
-      credits: 70,
-      grade: "Satisfied",
-      skills: ["React", "TypeScript"],
-      icon: <Code className="w-5 h-5" />,
-      completedAt: "Oct 2024",
-      description: "Created accessible component library for booking flows"
-    },
-    {
-      id: 4,
-      title: "Data Analytics Dashboard",
-      company: "Spotify",
-      credits: 60,
-      grade: "Excellent",
-      skills: ["Python", "SQL"],
-      icon: <BarChart3 className="w-5 h-5" />,
-      completedAt: "Sep 2024",
-      description: "Analyzed listening patterns for SEA market insights"
-    },
-  ];
-
-  const skillsByCategory = [
-    { category: "Frontend", skills: ["React", "TypeScript", "Tailwind CSS"], level: 92 },
-    { category: "Backend", skills: ["Node.js", "Python", "PostgreSQL"], level: 88 },
-    { category: "Design", skills: ["Figma", "UX Research", "Prototyping"], level: 85 },
-    { category: "Data", skills: ["SQL", "Python", "Data Analysis"], level: 78 },
-  ];
+  function getProjectIcon(category?: string) {
+    switch (category?.toLowerCase()) {
+      case "frontend": return <Code className="w-5 h-5" />;
+      case "backend": return <Database className="w-5 h-5" />;
+      case "design": return <Palette className="w-5 h-5" />;
+      case "data":
+      case "ml": return <BarChart3 className="w-5 h-5" />;
+      default: return <Code className="w-5 h-5" />;
+    }
+  }
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -119,7 +137,7 @@ const Portfolio = () => {
       const pageWidth = pdf.internal.pageSize.getWidth();
       
       // Header
-      pdf.setFillColor(30, 64, 175); // Primary blue
+      pdf.setFillColor(30, 64, 175);
       pdf.rect(0, 0, pageWidth, 50, 'F');
       
       // Name and title
@@ -154,56 +172,62 @@ const Portfolio = () => {
       });
       
       // Skills section
-      pdf.setTextColor(30, 64, 175);
-      pdf.setFontSize(14);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('Top Skills', 20, 105);
-      
-      pdf.setTextColor(0, 0, 0);
-      pdf.setFontSize(10);
-      pdf.setFont('helvetica', 'normal');
-      pdf.text(profile.topSkills.join('  •  '), 20, 115);
+      if (profile.topSkills.length > 0) {
+        pdf.setTextColor(30, 64, 175);
+        pdf.setFontSize(14);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Top Skills', 20, 105);
+        
+        pdf.setTextColor(0, 0, 0);
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(profile.topSkills.join('  •  '), 20, 115);
+      }
       
       // Skills breakdown
-      pdf.setTextColor(30, 64, 175);
-      pdf.setFontSize(14);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('Skills Breakdown', 20, 130);
-      
-      pdf.setTextColor(0, 0, 0);
-      pdf.setFontSize(10);
-      pdf.setFont('helvetica', 'normal');
-      
-      skillsByCategory.forEach((cat, i) => {
-        const yPos = 140 + (i * 12);
-        pdf.text(`${cat.category}: ${cat.level}%`, 20, yPos);
-        pdf.text(cat.skills.join(', '), 70, yPos);
-      });
+      if (skillsByCategory.length > 0) {
+        pdf.setTextColor(30, 64, 175);
+        pdf.setFontSize(14);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Skills Breakdown', 20, 130);
+        
+        pdf.setTextColor(0, 0, 0);
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'normal');
+        
+        skillsByCategory.forEach((cat, i) => {
+          const yPos = 140 + (i * 12);
+          pdf.text(`${cat.category}: ${cat.level}%`, 20, yPos);
+          pdf.text(cat.skills.join(', '), 70, yPos);
+        });
+      }
       
       // Projects section
-      pdf.setTextColor(30, 64, 175);
-      pdf.setFontSize(14);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('Completed Projects', 20, 195);
-      
-      pdf.setTextColor(0, 0, 0);
-      pdf.setFontSize(10);
-      
-      projects.forEach((project, i) => {
-        const yPos = 205 + (i * 20);
-        
-        if (yPos > 270) {
-          pdf.addPage();
-        }
-        
-        const adjustedY = yPos > 270 ? 20 + (i - 3) * 20 : yPos;
-        
+      if (completedProjects.length > 0) {
+        pdf.setTextColor(30, 64, 175);
+        pdf.setFontSize(14);
         pdf.setFont('helvetica', 'bold');
-        pdf.text(project.title, 20, adjustedY);
-        pdf.setFont('helvetica', 'normal');
-        pdf.text(`${project.company} | ${project.credits} Credits | ${project.grade}`, 20, adjustedY + 5);
-        pdf.text(`Skills: ${project.skills.join(', ')} | ${project.completedAt}`, 20, adjustedY + 10);
-      });
+        pdf.text('Completed Projects', 20, 195);
+        
+        pdf.setTextColor(0, 0, 0);
+        pdf.setFontSize(10);
+        
+        completedProjects.forEach((project, i) => {
+          const yPos = 205 + (i * 20);
+          
+          if (yPos > 270) {
+            pdf.addPage();
+          }
+          
+          const adjustedY = yPos > 270 ? 20 + (i - 3) * 20 : yPos;
+          
+          pdf.setFont('helvetica', 'bold');
+          pdf.text(project.title, 20, adjustedY);
+          pdf.setFont('helvetica', 'normal');
+          pdf.text(`${project.company} | ${project.credits} Credits | ${project.grade}`, 20, adjustedY + 5);
+          pdf.text(`Skills: ${project.skills.join(', ')} | ${project.completedAt}`, 20, adjustedY + 10);
+        });
+      }
       
       // Footer
       const lastPageHeight = pdf.internal.pageSize.getHeight();
@@ -212,7 +236,6 @@ const Portfolio = () => {
       pdf.text('Generated by Heuristic | Verified Portfolio', pageWidth / 2, lastPageHeight - 10, { align: 'center' });
       pdf.text(new Date().toLocaleDateString(), pageWidth / 2, lastPageHeight - 5, { align: 'center' });
       
-      // Save the PDF
       pdf.save(`${profile.name.replace(' ', '_')}_Portfolio.pdf`);
       
       toast.success("Portfolio PDF exported!", {
@@ -341,7 +364,7 @@ const Portfolio = () => {
                     </a>
                   </Button>
                 ) : (
-                  <Button variant="outline" size="sm" className="rounded-xl gap-2">
+                  <Button variant="outline" size="sm" className="rounded-xl gap-2" disabled>
                     <Github className="w-4 h-4" />
                     GitHub
                   </Button>
@@ -354,7 +377,7 @@ const Portfolio = () => {
                     </a>
                   </Button>
                 ) : (
-                  <Button variant="outline" size="sm" className="rounded-xl gap-2">
+                  <Button variant="outline" size="sm" className="rounded-xl gap-2" disabled>
                     <Linkedin className="w-4 h-4" />
                     LinkedIn
                   </Button>
@@ -383,106 +406,143 @@ const Portfolio = () => {
         <div className="mt-6 pt-6 border-t border-border/50">
           <p className="text-sm font-medium text-muted-foreground mb-3">Top Skills</p>
           <div className="flex flex-wrap gap-2">
-            {profile.topSkills.map((skill) => (
-              <span key={skill} className="px-4 py-2 rounded-xl bg-primary/10 text-primary text-sm font-medium">
-                {skill}
-              </span>
-            ))}
+            {profile.topSkills.length > 0 ? (
+              profile.topSkills.map((skill) => (
+                <span key={skill} className="px-4 py-2 rounded-xl bg-primary/10 text-primary text-sm font-medium">
+                  {skill}
+                </span>
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground">No skills added yet. Complete your profile to showcase your skills.</p>
+            )}
           </div>
         </div>
       </div>
 
       {/* Skills Breakdown */}
-      <div className="glass-card">
-        <h3 className="font-bold text-foreground mb-6">Skills Breakdown</h3>
-        <div className="grid md:grid-cols-2 gap-6">
-          {skillsByCategory.map((category) => (
-            <div key={category.category} className="glass-card-subtle">
-              <div className="flex items-center justify-between mb-3">
-                <span className="font-medium text-foreground">{category.category}</span>
-                <span className="text-sm text-primary font-bold">{category.level}%</span>
+      {skillsByCategory.length > 0 && (
+        <div className="glass-card">
+          <h3 className="font-bold text-foreground mb-6">Skills Breakdown</h3>
+          <div className="grid md:grid-cols-2 gap-6">
+            {skillsByCategory.map((category) => (
+              <div key={category.category} className="glass-card-subtle">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="font-medium text-foreground">{category.category}</span>
+                  <span className="text-sm text-primary font-bold">{category.level}%</span>
+                </div>
+                <div className="h-2.5 bg-secondary rounded-full overflow-hidden mb-3">
+                  <div 
+                    className="h-full bg-gradient-to-r from-primary to-primary/70 rounded-full transition-all duration-500"
+                    style={{ width: `${category.level}%` }}
+                  />
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {category.skills.map((skill, i) => (
+                    <span key={skill} className="text-xs text-muted-foreground">
+                      {skill}{i < category.skills.length - 1 && " • "}
+                    </span>
+                  ))}
+                </div>
               </div>
-              <div className="h-2.5 bg-secondary rounded-full overflow-hidden mb-3">
-                <div 
-                  className="h-full bg-gradient-to-r from-primary to-primary/70 rounded-full transition-all duration-500"
-                  style={{ width: `${category.level}%` }}
-                />
-              </div>
-              <div className="flex flex-wrap gap-1">
-                {category.skills.map((skill, i) => (
-                  <span key={skill} className="text-xs text-muted-foreground">
-                    {skill}{i < category.skills.length - 1 && " • "}
-                  </span>
-                ))}
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Completed Projects */}
       <div>
         <h3 className="font-bold text-foreground mb-4">Completed Projects</h3>
-        <div className="grid md:grid-cols-2 gap-4">
-          {projects.map((project) => (
-            <div key={project.id} className="glass-card group hover:border-primary/30 transition-all">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                  {project.icon}
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h4 className="font-bold text-foreground">{project.title}</h4>
-                      <p className="text-sm text-muted-foreground">{project.company}</p>
-                    </div>
-                    <span className={`status-badge ${
-                      project.grade === "Excellent" 
-                        ? "bg-success/10 text-success" 
-                        : "bg-primary/10 text-primary"
-                    }`}>
-                      <Star className="w-3 h-3 mr-1" />
-                      {project.grade}
-                    </span>
+        
+        {submissionsLoading ? (
+          <div className="grid md:grid-cols-2 gap-4">
+            {[1, 2].map((i) => (
+              <div key={i} className="glass-card animate-pulse">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-secondary" />
+                  <div className="flex-1">
+                    <div className="h-4 bg-secondary rounded w-3/4 mb-2" />
+                    <div className="h-3 bg-secondary rounded w-1/2 mb-4" />
+                    <div className="h-3 bg-secondary rounded w-full" />
                   </div>
-                  <p className="text-sm text-muted-foreground mt-2 line-clamp-1">{project.description}</p>
-                  <div className="flex items-center justify-between mt-3">
-                    <div className="flex flex-wrap gap-1">
-                      {project.skills.map((skill) => (
-                        <span key={skill} className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">
-                          {skill}
-                        </span>
-                      ))}
-                    </div>
-                    <span className="text-sm font-medium text-primary">{project.credits} credits</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-2">{project.completedAt}</p>
                 </div>
               </div>
-              <Button variant="ghost" size="sm" className="w-full mt-4 rounded-xl gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                View Project <ExternalLink className="w-4 h-4" />
-              </Button>
+            ))}
+          </div>
+        ) : completedProjects.length === 0 ? (
+          <div className="glass-card text-center py-12">
+            <div className="w-14 h-14 rounded-xl bg-secondary flex items-center justify-center mx-auto mb-4">
+              <FolderOpen className="w-7 h-7 text-muted-foreground" />
             </div>
-          ))}
-        </div>
+            <h4 className="font-semibold text-foreground mb-2">No completed projects yet</h4>
+            <p className="text-muted-foreground max-w-md mx-auto">
+              Browse the Marketplace to start working on projects and build your portfolio. 
+              Completed projects will appear here.
+            </p>
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 gap-4">
+            {completedProjects.map((project) => (
+              <div key={project.id} className="glass-card group hover:border-primary/30 transition-all">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                    {project.icon}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h4 className="font-bold text-foreground">{project.title}</h4>
+                        <p className="text-sm text-muted-foreground">{project.company}</p>
+                      </div>
+                      <span className={`status-badge ${
+                        project.grade === "Excellent" 
+                          ? "bg-success/10 text-success" 
+                          : "bg-primary/10 text-primary"
+                      }`}>
+                        <Star className="w-3 h-3 mr-1" />
+                        {project.grade}
+                      </span>
+                    </div>
+                    {project.description && (
+                      <p className="text-sm text-muted-foreground mt-2 line-clamp-1">{project.description}</p>
+                    )}
+                    <div className="flex items-center justify-between mt-3">
+                      <div className="flex flex-wrap gap-1">
+                        {project.skills.slice(0, 3).map((skill) => (
+                          <span key={skill} className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                      <span className="text-sm font-medium text-primary">{project.credits} credits</span>
+                    </div>
+                    {project.completedAt && (
+                      <p className="text-xs text-muted-foreground mt-2">{project.completedAt}</p>
+                    )}
+                  </div>
+                </div>
+                <Button variant="ghost" size="sm" className="w-full mt-4 rounded-xl gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  View Project <ExternalLink className="w-4 h-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Verification Badge */}
       <div className="glass-card bg-primary/5 border-primary/20">
         <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center">
-            <Award className="w-7 h-7" />
+          <div className="w-14 h-14 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+            <CheckCircle className="w-7 h-7" />
           </div>
           <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <h3 className="font-bold text-foreground">Verified Portfolio</h3>
-              <CheckCircle className="w-4 h-4 text-success" />
-            </div>
+            <h4 className="font-bold text-foreground">Verified Portfolio</h4>
             <p className="text-sm text-muted-foreground">
-              All projects are company-graded and verified by Heuristic. Share with confidence.
+              All projects are verified by companies and approved by teachers. 
+              Credits are earned through real work.
             </p>
           </div>
-          <Button variant="outline" className="rounded-xl gap-2" onClick={handleSharePortfolio}>
+          <Button variant="outline" className="rounded-xl gap-2">
             <ExternalLink className="w-4 h-4" />
             View Public Profile
           </Button>
