@@ -19,11 +19,13 @@ import { useStudentStats } from "@/hooks/useStudentStats";
 import { useStudentActivity } from "@/hooks/useStudentActivity";
 import { useUpcomingDeadlines } from "@/hooks/useUpcomingDeadlines";
 import ExemptionRequest from "./ExemptionRequest";
+import IndustryReadinessScore from "./IndustryReadinessScore";
+import SkillRadarGraph from "./SkillRadarGraph";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const StudentOverview = () => {
   const { profile: authProfile } = useAuth();
-  const { profile: studentProfile } = useStudentProfile();
+  const { profile: studentProfile, industryReadinessScore, skillGraphData } = useStudentProfile();
   const { stats, isLoading: statsLoading } = useStudentStats();
   const { activities, isLoading: activitiesLoading } = useStudentActivity(5);
   const { deadlines, isLoading: deadlinesLoading } = useUpcomingDeadlines(3);
@@ -131,6 +133,25 @@ const StudentOverview = () => {
             </div>
           </>
         )}
+      </div>
+
+      {/* Industry Readiness & Skills Section */}
+      <div className="grid lg:grid-cols-2 gap-6">
+        <div className="glass-card flex flex-col items-center py-6">
+          <IndustryReadinessScore
+            score={industryReadinessScore || 0}
+            projectsCompleted={stats.projectsCompleted}
+            size="lg"
+            showImproveHint
+          />
+        </div>
+        <div className="glass-card">
+          <h3 className="font-bold text-foreground mb-4">Skill Radar</h3>
+          <SkillRadarGraph
+            data={skillGraphData || []}
+            size="md"
+          />
+        </div>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">

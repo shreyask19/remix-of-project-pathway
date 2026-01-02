@@ -22,12 +22,13 @@ import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { useStudentSubmissions } from "@/hooks/useSubmissions";
 import { useStudentBadges } from "@/hooks/useReliabilityBadge";
 import ReliabilityBadge from "@/components/shared/ReliabilityBadge";
+import IndustryReadinessScore from "./IndustryReadinessScore";
 import { generatePortfolioPDF, downloadPDF, ProjectData, SkillCategory } from "@/lib/pdfGenerator";
 import { Progress } from "@/components/ui/progress";
 
 const Portfolio = () => {
   const { profile: authProfile, user } = useAuth();
-  const { profile: studentProfile, credits } = useStudentProfile();
+  const { profile: studentProfile, credits, industryReadinessScore, skillGraphData } = useStudentProfile();
   const { submissions, isLoading: submissionsLoading } = useStudentSubmissions();
   const { badges } = useStudentBadges(user?.id);
   const [isExporting, setIsExporting] = useState(false);
@@ -326,18 +327,29 @@ const Portfolio = () => {
             </div>
           </div>
 
-          <div className="lg:ml-auto grid grid-cols-3 gap-6 text-center">
-            <div className="glass-card-subtle px-6 py-4">
-              <p className="text-3xl font-bold text-primary">{profile.totalCredits}</p>
-              <p className="text-sm text-muted-foreground">Total Credits</p>
-            </div>
-            <div className="glass-card-subtle px-6 py-4">
-              <p className="text-3xl font-bold text-foreground">{profile.projectsCompleted}</p>
-              <p className="text-sm text-muted-foreground">Projects</p>
-            </div>
-            <div className="glass-card-subtle px-6 py-4">
-              <p className="text-3xl font-bold text-success">{profile.skillScore}%</p>
-              <p className="text-sm text-muted-foreground">Skill Score</p>
+          <div className="lg:ml-auto flex items-center gap-6">
+            {/* Industry Readiness Score */}
+            <IndustryReadinessScore
+              score={industryReadinessScore || 0}
+              projectsCompleted={completedProjects.length}
+              size="sm"
+              showImproveHint={false}
+            />
+            
+            {/* Stats Grid */}
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div className="glass-card-subtle px-4 py-3">
+                <p className="text-2xl font-bold text-primary">{profile.totalCredits}</p>
+                <p className="text-xs text-muted-foreground">Credits</p>
+              </div>
+              <div className="glass-card-subtle px-4 py-3">
+                <p className="text-2xl font-bold text-foreground">{profile.projectsCompleted}</p>
+                <p className="text-xs text-muted-foreground">Projects</p>
+              </div>
+              <div className="glass-card-subtle px-4 py-3">
+                <p className="text-2xl font-bold text-success">{profile.skillScore}%</p>
+                <p className="text-xs text-muted-foreground">Skill Score</p>
+              </div>
             </div>
           </div>
         </div>

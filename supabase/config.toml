@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.calculate-review-metrics]
 verify_jwt = false
+
+[functions.calculate-industry-readiness]
+verify_jwt = false
