@@ -76,8 +76,17 @@ export const useHiringPipeline = () => {
 
   const updateStage = useMutation({
     mutationFn: async ({ candidateId, stage, notes }: { candidateId: string; stage: PipelineStage; notes?: string }) => {
-      const updateData: any = { stage, updated_at: new Date().toISOString() };
+      if (!user) throw new Error("Not authenticated");
+      
+      const updateData: Record<string, unknown> = { stage, updated_at: new Date().toISOString() };
       if (notes !== undefined) updateData.notes = notes;
+      
+      // Get candidate info first
+      const { data: candidate } = await supabase
+        .from("hiring_pipeline")
+        .select("student_id")
+        .eq("id", candidateId)
+        .single();
       
       const { error } = await supabase
         .from("hiring_pipeline")
@@ -85,6 +94,34 @@ export const useHiringPipeline = () => {
         .eq("id", candidateId);
 
       if (error) throw error;
+
+      // Log activity
+      await supabase.rpc("log_activity", {
+        p_user_id: user.id,
+        p_action_type: `pipeline_${stage}`,
+        p_entity_type: "hiring_pipeline",
+        p_entity_id: candidateId,
+        p_metadata: { stage, student_id: candidate?.student_id },
+      });
+
+      // Notify student about stage change
+      if (candidate?.student_id) {
+        const stageMessages: Record<string, string> = {
+          interviewing: "You've been moved to the interview stage!",
+          offer_sent: "Exciting news! A company wants to make you an offer.",
+          hired: "Congratulations! You've been hired! 🎉",
+          rejected: "Your application status has been updated.",
+        };
+
+        if (stageMessages[stage]) {
+          await supabase.from("notifications").insert({
+            user_id: candidate.student_id,
+            type: stage === "hired" ? "success" : stage === "rejected" ? "info" : "info",
+            title: stage === "hired" ? "You're Hired!" : "Pipeline Update",
+            message: stageMessages[stage],
+          });
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["hiringPipeline"] });
@@ -96,22 +133,68 @@ export const useHiringPipeline = () => {
   });
 
   const addToPipeline = useMutation({
-    mutationFn: async ({ studentId, notes }: { studentId: string; notes?: string }) => {
+    mutationFn: async ({ studentId, notes, sendInvite = false, role }: { 
+      studentId: string; 
+      notes?: string;
+      sendInvite?: boolean;
+      role?: string;
+    }) => {
       if (!user) throw new Error("Not authenticated");
       
-      const { error } = await supabase
+      // Add to pipeline
+      const { data: pipelineEntry, error } = await supabase
         .from("hiring_pipeline")
         .insert({
           company_id: user.id,
           student_id: studentId,
           stage: "shortlisted",
           notes,
-        });
+        })
+        .select()
+        .single();
 
       if (error) throw error;
+
+      // Log activity
+      await supabase.rpc("log_activity", {
+        p_user_id: user.id,
+        p_action_type: "candidate_shortlisted",
+        p_entity_type: "hiring_pipeline",
+        p_entity_id: pipelineEntry.id,
+        p_metadata: { student_id: studentId },
+      });
+
+      // Notify student they've been shortlisted
+      await supabase.from("notifications").insert({
+        user_id: studentId,
+        type: "info",
+        title: "You've Been Shortlisted! 🌟",
+        message: "A company has added you to their hiring pipeline. Keep up the great work!",
+      });
+
+      // Optionally send interview invitation
+      if (sendInvite && role) {
+        await supabase.from("invitations").insert({
+          company_id: user.id,
+          student_id: studentId,
+          role,
+          type: "interview",
+          message: notes,
+        });
+
+        await supabase.from("notifications").insert({
+          user_id: studentId,
+          type: "info",
+          title: "Interview Invitation",
+          message: `A company wants to interview you for the ${role} position.`,
+        });
+      }
+
+      return pipelineEntry;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["hiringPipeline"] });
+      queryClient.invalidateQueries({ queryKey: ["talentPool"] });
       toast.success("Candidate added to pipeline");
     },
     onError: () => {
