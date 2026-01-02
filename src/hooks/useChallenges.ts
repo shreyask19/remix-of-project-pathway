@@ -18,9 +18,13 @@ export interface Challenge {
   created_at: string;
   instructions?: string;
   restrictions?: string[];
+  estimated_hours?: number;
+  tech_stack?: string[];
+  stipend_amount?: number | null;
   company?: {
     company_name: string;
     logo_url: string;
+    avg_review_time_hours?: number | null;
   };
 }
 
@@ -82,7 +86,7 @@ export const useChallenges = (options: UseChallengesOptions = {}) => {
 
       const { data: companiesData } = await supabase
         .from("company_profiles")
-        .select("user_id, company_name, logo_url")
+        .select("user_id, company_name, logo_url, avg_review_time_hours")
         .in("user_id", companyIds);
 
       const companiesMap = new Map(companiesData?.map(c => [c.user_id, c]) || []);
@@ -90,7 +94,7 @@ export const useChallenges = (options: UseChallengesOptions = {}) => {
       return (challengesData || []).map(challenge => ({
         ...challenge,
         company: companiesMap.get(challenge.company_id) || null,
-      })) as (Challenge & { company: { company_name: string; logo_url: string } | null })[];
+      })) as (Challenge & { company: { company_name: string; logo_url: string; avg_review_time_hours?: number | null } | null })[];
     },
     enabled: !!user,
   });
